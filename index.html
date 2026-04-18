@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coordenação Sagrada Família</title>
+    <link rel="stylesheet" href="style.css?v=1.1">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <div class="church-icon">⛪</div>
+            <h1>Paróquia Sagrada Família</h1>
+            <p>Coordenação de Coroinhas e Acólitos</p>
+        </div>
+        <nav id="main-nav">
+            <button id="btn-coroinha" class="active">Coroinha ou Acólito</button>
+            <button id="btn-luiggi">Área do Luiggi</button>
+        </nav>
+    </header>
+
+    <main id="app-container">
+        <!-- O conteúdo será injetado pelo JavaScript -->
+        <section id="view-coroinha" class="view">
+            <div class="card">
+                <h2>Escala do Final de Semana</h2>
+                <p class="subtitle">Selecione seu nome e os horários que você pode servir.</p>
+                
+                <form id="form-escala">
+                    <div class="form-group">
+                        <label>Você é:</label>
+                        <div class="role-selector">
+                            <input type="radio" id="role-coroinha" name="user-role" value="Coroinha" checked>
+                            <label for="role-coroinha" class="role-btn">Coroinha</label>
+                            
+                            <input type="radio" id="role-acolito" name="user-role" value="Acólito">
+                            <label for="role-acolito" class="role-btn">Acólito</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="select-name">Seu Nome</label>
+                        <select id="select-name" required>
+                            <option value="" disabled selected>Escolha seu nome...</option>
+                            <!-- Nomes inseridos dinamicamente -->
+                        </select>
+                    </div>
+
+                    <div class="mass-selection">
+                        <label>Quais missas você irá?</label>
+                        <div id="mass-options" class="options-grid">
+                            <!-- Opções de missa inseridas dinamicamente -->
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary">Salvar Disponibilidade</button>
+                </form>
+            </div>
+        </section>
+
+        <section id="view-luiggi" class="view hidden">
+            <div class="dashboard-header">
+                <h2>Painel do Coordenador</h2>
+                <div class="date-selector">
+                    <span id="current-weekend-label">Final de Semana: --/--</span>
+                </div>
+            </div>
+
+            <div id="mass-tabs" class="tabs">
+                <!-- Abas para cada missa -->
+            </div>
+
+            <div id="attendance-list" class="attendance-card">
+                <!-- Lista de quem vai na missa selecionada -->
+            </div>
+        </section>
+    </main>
+
+    <div id="toast" class="toast hidden">Mensagem aqui</div>
+
+    <script src="app.js?v=1.1"></script>
+</body>
+</html>

@@ -1,0 +1,359 @@
+:root {
+    --primary: #1a237e; /* Azul Profundo */
+    --secondary: #ffd700; /* Dourado */
+    --accent: #3f51b5;
+    --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    --card-bg: rgba(255, 255, 255, 0.9);
+    --text-main: #2c3e50;
+    --text-light: #7f8c8d;
+    --radius: 16px;
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Outfit', sans-serif;
+}
+
+body {
+    background: var(--bg-gradient);
+    min-height: 100vh;
+    color: var(--text-main);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    width: 100%;
+    max-width: 600px;
+}
+
+.logo-container {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.church-icon {
+    font-size: 3rem;
+    margin-bottom: 10px;
+}
+
+h1 {
+    font-size: 1.5rem;
+    color: var(--primary);
+    font-weight: 700;
+}
+
+p.subtitle {
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+
+/* Navegação */
+#main-nav {
+    display: flex;
+    background: rgba(255, 255, 255, 0.5);
+    padding: 5px;
+    border-radius: 50px;
+    gap: 5px;
+    margin: 0 auto;
+    width: fit-content;
+}
+
+#main-nav button {
+    border: none;
+    background: transparent;
+    padding: 10px 20px;
+    border-radius: 40px;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-light);
+    transition: var(--transition);
+}
+
+#main-nav button.active {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 4px 15px rgba(26, 35, 126, 0.3);
+}
+
+/* Cartões de Conteúdo */
+.card {
+    background: var(--card-bg);
+    width: 100%;
+    max-width: 500px;
+    padding: 30px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--primary);
+}
+
+select {
+    width: 100%;
+    padding: 12px 15px;
+    border-radius: 10px;
+    border: 2px solid #e0e0e0;
+    font-size: 1rem;
+    outline: none;
+    background: white;
+    transition: var(--transition);
+}
+
+select:focus {
+    border-color: var(--accent);
+}
+
+/* Seletor de Cargo */
+.role-selector {
+    display: flex;
+    gap: 10px;
+}
+
+.role-selector input {
+    display: none;
+}
+
+.role-btn {
+    flex: 1;
+    padding: 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: 600;
+    transition: var(--transition);
+    background: white;
+}
+
+.role-selector input:checked + .role-btn {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    box-shadow: 0 4px 10px rgba(26, 35, 126, 0.2);
+}
+
+/* Opções de Missa */
+.options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.mass-item {
+    position: relative;
+}
+
+.mass-item input {
+    position: absolute;
+    opacity: 0;
+}
+
+.mass-label {
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    cursor: pointer;
+    text-align: center;
+    transition: var(--transition);
+    background: white;
+}
+
+.mass-item input:checked + .mass-label {
+    border-color: var(--primary);
+    background: rgba(26, 35, 126, 0.05);
+    box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.mass-label span:first-child {
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.mass-label span:last-child {
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+.btn-primary {
+    width: 100%;
+    margin-top: 25px;
+    padding: 15px;
+    border: none;
+    border-radius: 12px;
+    background: var(--primary);
+    color: white;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(26, 35, 126, 0.3);
+    transition: var(--transition);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(26, 35, 126, 0.4);
+}
+
+/* Estilos Área do Luiggi */
+#view-luiggi {
+    width: 100%;
+    max-width: 600px;
+}
+
+.dashboard-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.tabs {
+    display: flex;
+    overflow-x: auto;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 5px;
+}
+
+.tab {
+    padding: 10px 15px;
+    background: rgba(255,255,255,0.7);
+    border-radius: 10px;
+    white-space: nowrap;
+    cursor: pointer;
+    font-weight: 600;
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.2;
+}
+
+.tab small {
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+.tab.active {
+    background: var(--primary);
+    color: white;
+}
+
+.attendance-card {
+    background: white;
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+}
+
+.attendance-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.attendance-item:last-child {
+    border-bottom: none;
+}
+
+.person-info h4 {
+    font-size: 1rem;
+}
+
+.person-info p {
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+.check-btn {
+    padding: 8px 15px;
+    border-radius: 8px;
+    border: none;
+    background: #f0f0f0;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.check-btn.present {
+    background: #27ae60;
+    color: white;
+}
+
+/* Utilidades */
+.hidden { display: none; }
+
+.toast {
+    position: fixed;
+    bottom: 20px;
+    background: #333;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 50px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    z-index: 1000;
+}
+
+.toast.hidden {
+    transform: translateY(100px);
+    opacity: 0;
+}
+
+/* Badges */
+.badge {
+    font-size: 0.65rem;
+    padding: 3px 8px;
+    border-radius: 50px;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.role-coroinha {
+    background: #e1f5fe;
+    color: #0288d1;
+}
+
+.role-acolito {
+    background: #fff8e1;
+    color: #ffa000;
+}
+
+@media (max-width: 480px) {
+    .options-grid {
+        grid-template-columns: 1fr;
+    }
+}

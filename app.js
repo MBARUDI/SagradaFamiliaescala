@@ -1,11 +1,14 @@
-// Dados Iniciais e Mock
-const servers = [
-    { id: 1, nome: "João Silva", cargo: "Coroinha" },
-    { id: 2, nome: "Maria Oliveira", cargo: "Acólito" },
-    { id: 3, nome: "Pedro Santos", cargo: "Coroinha" },
-    { id: 4, nome: "Ana Costa", cargo: "Acólito" },
-    { id: 5, nome: "Lucas Lima", cargo: "Coroinha" },
-];
+// --- CONFIGURAÇÃO DO SUPABASE ---
+// COLE AQUI A URL E A CHAVE ANON DO SEU PROJETO SUPABASE
+const supabaseUrl = 'https://uokmwzqqwpojfxrdiuzg.supabase.co';
+const supabaseKey = 'sb_publishable_SQd6xVIZnFqAbqwgFel_cw_J-cOIsPO';
+
+// IMPORTANTE: usamos 'supabaseClient' para não dar conflito com a variável global
+const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+// Dados dinâmicos
+let servers = [];
+let attendanceData = [];
 
 // Lógica de Datas do Final de Semana
 function getWeekendDates() {
@@ -39,8 +42,6 @@ const massSchedules = [
     { id: 'dom-18', dia: 'Domingo', data: dates.dom, hora: '18:00' },
 ];
 
-// Estado da Aplicação
-let attendanceData = JSON.parse(localStorage.getItem('attendance_data')) || [];
 let selectedMassId = 'sab-17';
 
 // Elementos do DOM
@@ -58,14 +59,37 @@ const weekendLabel = document.getElementById('current-weekend-label');
 const roleInputs = document.querySelectorAll('input[name="user-role"]');
 
 // Inicialização
-function init() {
-    if (weekendLabel) weekendLabel.textContent = `Final de Semana: ${dates.weekendRange}`;
-    renderServerSelect(); // Renderiza com o cargo padrão (Coroinha)
-    renderMassOptions();
-    renderMassTabs();
-    setupNavigation();
-    setupRoleFilter();
-    updateAttendanceList();
+async function init() {
+    try {
+        if (weekendLabel) weekendLabel.textContent = `Final de Semana: ${dates.weekendRange}`;
+        
+        await fetchData();
+
+        renderServerSelect(); // Renderiza com o cargo padrão (Coroinha)
+        renderMassOptions();
+        renderMassTabs();
+        setupNavigation();
+        setupRoleFilter();
+        updateAttendanceList();
+    } catch (error) {
+        console.error("Erro na inicialização:", error);
+    }
+}
+
+// Buscar Dados do Supabase
+async function fetchData() {
+    try {
+        const { data: sData, error: sErr } = await supabaseClient.from('servers').select('*');
+        if (sErr) throw sErr;
+        if (sData) servers = sData;
+
+        const { data: aData, error: aErr } = await supabaseClient.from('attendance').select('*');
+        if (aErr) throw aErr;
+        if (aData) attendanceData = aData;
+    } catch (e) {
+        console.error("Erro ao buscar dados:", e);
+        showToast("Erro ao conectar ao banco de dados.");
+    }
 }
 
 // Navegação entre abas principais
@@ -82,7 +106,7 @@ function setupNavigation() {
         viewCoroinha.classList.add('hidden');
         btnLuiggi.classList.add('active');
         btnCoroinha.classList.remove('active');
-        updateAttendanceList();
+        fetchData().then(() => updateAttendanceList()); // Recarrega dados ao abrir painel
     });
 }
 
@@ -128,7 +152,7 @@ function renderMassOptions() {
 }
 
 // Lida com o envio do formulário
-formEscala.addEventListener('submit', (e) => {
+formEscala.addEventListener('submit', async (e) => {
     e.preventDefault();
     const serverId = selectName.value;
     const selectedMasses = Array.from(document.querySelectorAll('input[name="mass"]:checked')).map(i => i.value);
@@ -138,20 +162,41 @@ formEscala.addEventListener('submit', (e) => {
         return;
     }
 
-    attendanceData = attendanceData.filter(item => item.serverId != serverId);
+    const btnSubmit = formEscala.querySelector('button[type="submit"]');
+    const originalText = btnSubmit.textContent;
+    btnSubmit.textContent = "Salvando...";
+    btnSubmit.disabled = true;
 
-    selectedMasses.forEach(mId => {
-        attendanceData.push({
-            serverId: parseInt(serverId),
-            massId: mId,
+    try {
+        // Remover escalas anteriores do usuário
+        await supabaseClient.from('attendance').delete().eq('server_id', serverId);
+
+        attendanceData = attendanceData.filter(item => item.server_id != serverId);
+
+        const newEntries = selectedMasses.map(mId => ({
+            server_id: parseInt(serverId),
+            mass_id: mId,
             status: 'pretended',
             confirmed: false
-        });
-    });
+        }));
 
-    saveData();
-    showToast("Escala salva com sucesso! ⛪");
-    formEscala.reset();
+        const { data, error } = await supabaseClient.from('attendance').insert(newEntries).select();
+        
+        if (error) throw error;
+        
+        if (data) {
+             attendanceData.push(...data);
+        }
+
+        showToast("Escala salva com sucesso! ⛪");
+        formEscala.reset();
+    } catch (err) {
+        console.error("Erro ao salvar escala:", err);
+        showToast("Erro ao salvar. Tente novamente.");
+    } finally {
+        btnSubmit.textContent = originalText;
+        btnSubmit.disabled = false;
+    }
 });
 
 // --- Lógica do Luiggi (Dashboard) ---
@@ -173,7 +218,7 @@ function renderMassTabs() {
 }
 
 function updateAttendanceList() {
-    const list = attendanceData.filter(a => a.massId === selectedMassId);
+    const list = attendanceData.filter(a => a.mass_id === selectedMassId);
     attendanceList.innerHTML = '';
 
     if (list.length === 0) {
@@ -182,7 +227,9 @@ function updateAttendanceList() {
     }
 
     list.forEach(entry => {
-        const server = servers.find(s => s.id === entry.serverId);
+        const server = servers.find(s => s.id === entry.server_id);
+        if (!server) return; // Segurança caso o servidor não exista
+        
         const item = document.createElement('div');
         item.className = 'attendance-item';
         
@@ -197,7 +244,7 @@ function updateAttendanceList() {
                 </div>
                 <p>Status: ${entry.confirmed ? 'Presente' : 'Aguardando'}</p>
             </div>
-            <button class="check-btn ${entry.confirmed ? 'present' : ''}" onclick="togglePresence(${entry.serverId}, '${entry.massId}')">
+            <button class="check-btn ${entry.confirmed ? 'present' : ''}" onclick="togglePresence(${entry.server_id}, '${entry.mass_id}')">
                 ${entry.confirmed ? '✅ Confirmado' : 'Confirmar'}
             </button>
         `;
@@ -205,18 +252,27 @@ function updateAttendanceList() {
     });
 }
 
-window.togglePresence = function(serverId, massId) {
-    const entry = attendanceData.find(a => a.serverId === serverId && a.massId === massId);
+window.togglePresence = async function(serverId, massId) {
+    const entry = attendanceData.find(a => a.server_id === serverId && a.mass_id === massId);
     if (entry) {
-        entry.confirmed = !entry.confirmed;
-        saveData();
-        updateAttendanceList();
+        const newConfirmedStatus = !entry.confirmed;
+        
+        try {
+            const { error } = await supabaseClient
+                .from('attendance')
+                .update({ confirmed: newConfirmedStatus })
+                .eq('id', entry.id);
+
+            if (error) throw error;
+
+            entry.confirmed = newConfirmedStatus;
+            updateAttendanceList();
+        } catch (e) {
+            console.error("Erro ao atualizar presença", e);
+            showToast("Erro ao atualizar.");
+        }
     }
 };
-
-function saveData() {
-    localStorage.setItem('attendance_data', JSON.stringify(attendanceData));
-}
 
 function showToast(msg) {
     toast.textContent = msg;
@@ -224,4 +280,5 @@ function showToast(msg) {
     setTimeout(() => toast.classList.add('hidden'), 3000);
 }
 
+// Inicia o app
 init();

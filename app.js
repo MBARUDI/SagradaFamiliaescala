@@ -507,7 +507,7 @@ function renderPublicScale() {
 
     if (currentMode === 'weekend') {
         massIds = ['sab-17', 'dom-09', 'dom-11', 'dom-18'];
-        headers.push(`Sáb ${dates.sab}<br>17:00`, `Dom ${dates.dom}<br>09:00`, `Dom ${dates.dom}<br>11:00`, `Dom ${dates.dom}<br>18:00`);
+        headers.push(`Sáb ${dates.sab}<br>17:00`, `Dom ${dates.dom}<br>09:00`, `Dom ${dates.dom}<br>11:00`, `Dom ${dates.dom}<br>18:30`);
     } else {
         if (!currentSpecialMassId) {
             publicScaleList.innerHTML = '<p style="text-align:center; padding:20px;">Selecione uma missa especial para ver a agenda.</p>';

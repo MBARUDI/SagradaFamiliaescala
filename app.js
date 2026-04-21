@@ -389,11 +389,11 @@ function updateGeneralList() {
 
         item.innerHTML = `
             <div class="person-info">
-                <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="person-name-row" style="display: flex; align-items: center; gap: 8px;">
                     <h4>${server.nome}</h4>
                     <span class="badge ${roleClass}">${server.cargo}</span>
                 </div>
-                <p style="margin-top: 5px; color: var(--primary); font-weight: 600;">Dias: ${daysText}</p>
+                <p style="margin-top: 5px; font-weight: 600;">Dias: ${daysText}</p>
             </div>
             <span class="badge ${statusClass}">${statusText}</span>
         `;

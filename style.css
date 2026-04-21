@@ -26,13 +26,21 @@ body {
     flex-direction: column;
     align-items: center;
     padding: 20px;
+    width: 100%;
+    overflow-x: hidden; /* Crucial para mobile */
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
 }
 
 header {
     text-align: center;
     margin-bottom: 30px;
     width: 100%;
-    max-width: 600px;
+    max-width: 1100px; /* Alinhado com as views */
 }
 
 .logo-container {
@@ -50,14 +58,59 @@ header {
 }
 
 h1 {
-    font-size: 1.5rem;
+    font-size: 1.8rem;
     color: var(--primary);
-    font-weight: 700;
+    font-weight: 800;
+    margin-top: 10px;
+    letter-spacing: -0.5px;
 }
 
 p.subtitle {
     color: var(--text-light);
-    font-size: 0.9rem;
+    font-size: 1rem;
+    font-weight: 500;
+    opacity: 0.8;
+}
+
+/* Efeito Moderno na Imagem */
+.banner-container {
+    position: relative;
+    width: 100%;
+    height: auto;
+    min-height: 300px; /* Garante um tamanho mínimo bacana */
+    aspect-ratio: 21 / 9; /* Mantém uma proporção de banner */
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 20px; /* Espaço real em vez de sobreposição negativa */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    z-index: 1;
+}
+
+.modern-banner {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center; /* Centralizado para mostrar o conjunto */
+    transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.banner-container:hover .modern-banner {
+    transform: scale(1.05);
+}
+
+.banner-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.4));
+}
+
+@media (max-width: 768px) {
+    .banner-container {
+        aspect-ratio: 16 / 9;
+        min-height: 200px;
+        margin-bottom: 15px;
+    }
 }
 
 /* Navegação */
@@ -71,10 +124,24 @@ p.subtitle {
     width: fit-content;
 }
 
+@media (max-width: 768px) {
+    #main-nav {
+        width: 100%;
+        border-radius: 12px;
+        justify-content: center;
+    }
+    
+    #main-nav button {
+        flex: 1; /* Botões dividem o espaço no mobile */
+        padding: 12px 10px;
+        font-size: 0.9rem;
+    }
+}
+
 #main-nav button {
     border: none;
     background: transparent;
-    padding: 10px 20px;
+    padding: 10px 25px;
     border-radius: 40px;
     cursor: pointer;
     font-weight: 600;
@@ -229,7 +296,24 @@ select:focus {
 /* Estilos das Visualizações */
 #view-luiggi, #view-inscricao {
     width: 100%;
-    max-width: 1100px; /* Aumentado para caber os 3 horários de domingo lado a lado */
+    max-width: 1400px; /* Expandido para ocupar quase tudo no PC */
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    #view-luiggi, #view-inscricao {
+        padding: 5px; /* Mínimo possível no celular */
+        max-width: 100%; /* Compacto para Celular */
+    }
+    
+    header {
+        padding: 15px;
+    }
+    
+    header h1 {
+        font-size: 1.5rem;
+    }
 }
 
 /* Sub-abas na Área de Controle */
@@ -237,6 +321,30 @@ select:focus {
     display: flex;
     gap: 10px;
     margin-top: 15px;
+    overflow-x: auto; /* Rolagem nas abas se for mobile */
+    padding-bottom: 5px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.sub-tabs::-webkit-scrollbar {
+    display: none; /* Esconde barra de rolagem nas abas para ficar mais limpo */
+}
+
+.sub-tab-btn {
+    white-space: nowrap; /* Impede que o texto da aba quebre */
+    padding: 10px 20px;
+    border: none;
+    border-radius: 10px;
+    background: #eee;
+    color: #666;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.sub-tab-btn.active {
+    background: var(--primary);
+    color: white;
 }
 
 .sub-tab-btn {
@@ -255,12 +363,19 @@ select:focus {
     color: white;
 }
 
-/* Lista Pública na Inscrição */
 .public-scale {
     background: white;
     padding: 20px;
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    max-width: 100%; /* Garante que não ultrapasse o celular */
+    overflow: hidden; /* Contém a tabela que rola lá dentro */
+}
+
+@media (max-width: 768px) {
+    .public-scale {
+        padding: 10px;
+    }
 }
 
 .scale-table {
@@ -268,19 +383,42 @@ select:focus {
     flex-direction: column;
     gap: 8px;
     margin-top: 15px;
+    overflow-x: auto; /* Scroll horizontal no mobile */
+    padding-bottom: 10px;
+}
+
+.scale-table::-webkit-scrollbar {
+    height: 6px;
+}
+
+.scale-table::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
 }
 
 .scale-header {
     display: grid;
-    grid-template-columns: 160px 1fr 1fr 1fr 1fr; /* 5 Colunas: Nome + 4 Missas */
+    grid-template-columns: 160px 1fr 1fr 1fr 1fr;
+    width: 100%;
     padding: 0;
     background: var(--primary);
     color: white;
     border-radius: 8px;
     font-weight: bold;
-    font-size: 0.75rem; /* Fonte menor para caber tudo */
+    font-size: 0.75rem;
     margin-bottom: 5px;
     overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    .scale-header, .scale-row {
+        grid-template-columns: 85px 1fr 1fr 1fr 1fr; /* Compacto ao extremo */
+        font-size: 0.65rem; /* Fonte pequena para caber sem rolar */
+    }
+    .scale-header span:first-child, .scale-name {
+        width: 85px !important;
+        padding-left: 8px !important;
+    }
 }
 
 .scale-header span {
@@ -302,6 +440,7 @@ select:focus {
 .scale-row {
     display: grid;
     grid-template-columns: 160px 1fr 1fr 1fr 1fr;
+    width: 100%;
     align-items: stretch;
     background: white;
     border-radius: 8px;
@@ -314,8 +453,17 @@ select:focus {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 8px 5px;
+    padding: 8px 2px; /* Reduzido o padding lateral */
     border-right: 1px solid #eee;
+}
+
+@media (max-width: 768px) {
+    .scale-col {
+        padding: 5px 1px;
+    }
+    .status-icon {
+        font-size: 0.9rem; /* Ícones menores no mobile */
+    }
 }
 
 .status-icon {

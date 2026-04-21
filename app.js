@@ -1,31 +1,23 @@
 // --- CONFIGURAÇÃO DO SUPABASE ---
-// COLE AQUI A URL E A CHAVE ANON DO SEU PROJETO SUPABASE
 const supabaseUrl = 'https://uokmwzqqwpojfxrdiuzg.supabase.co';
 const supabaseKey = 'sb_publishable_SQd6xVIZnFqAbqwgFel_cw_J-cOIsPO';
-
-// IMPORTANTE: usamos 'supabaseClient' para não dar conflito com a variável global
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 // Dados dinâmicos
 let servers = [];
 let attendanceData = [];
+let attendanceChart = null;
 
 // Lógica de Datas do Final de Semana
 function getWeekendDates() {
     const now = new Date();
-    const dayOfWeek = now.getDay(); // 0 (Dom) a 6 (Sáb)
-    
-    // Calcula o próximo sábado (ou hoje se for sábado)
+    const dayOfWeek = now.getDay();
     const satOffset = (6 - dayOfWeek + 7) % 7;
     const satDate = new Date(now);
     satDate.setDate(now.getDate() + satOffset);
-    
-    // Domingo é o dia seguinte ao sábado
     const sunDate = new Date(satDate);
     sunDate.setDate(satDate.getDate() + 1);
-    
     const format = (d) => `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
-    
     return {
         sab: format(satDate),
         dom: format(sunDate),
@@ -34,7 +26,6 @@ function getWeekendDates() {
 }
 
 const dates = getWeekendDates();
-
 const massSchedules = [
     { id: 'sab-17', dia: 'Sábado', data: dates.sab, hora: '17:00' },
     { id: 'dom-09', dia: 'Domingo', data: dates.dom, hora: '09:00' },
@@ -45,84 +36,119 @@ const massSchedules = [
 let selectedMassId = 'sab-17';
 
 // Elementos do DOM
-const viewCoroinha = document.getElementById('view-coroinha');
-const viewLuiggi = document.getElementById('view-luiggi');
-const btnCoroinha = document.getElementById('btn-coroinha');
-const btnLuiggi = document.getElementById('btn-luiggi');
+const viewInscricao = document.getElementById('view-inscricao');
+const viewControle = document.getElementById('view-luiggi');
+
+const btnInscricao = document.getElementById('btn-inscricao');
+const btnControle = document.getElementById('btn-controle');
+
 const selectName = document.getElementById('select-name');
 const massOptions = document.getElementById('mass-options');
 const formEscala = document.getElementById('form-escala');
 const massTabs = document.getElementById('mass-tabs');
 const attendanceList = document.getElementById('attendance-list');
+const generalStatusList = document.getElementById('general-status-list');
+const publicScaleList = document.getElementById('public-scale-list');
 const toast = document.getElementById('toast');
+
+// Sub-abas Controle
+const btnSubChamada = document.getElementById('btn-sub-chamada');
+const btnSubRelatorio = document.getElementById('btn-sub-relatorio');
+const controlChamada = document.getElementById('control-chamada');
+const controlRelatorio = document.getElementById('control-relatorio');
 const weekendLabel = document.getElementById('current-weekend-label');
 const roleInputs = document.querySelectorAll('input[name="user-role"]');
+const btnExportPdf = document.getElementById('btn-export-pdf');
 
 // Inicialização
 async function init() {
     try {
         if (weekendLabel) weekendLabel.textContent = `Final de Semana: ${dates.weekendRange}`;
-        
         await fetchData();
-
-        renderServerSelect(); // Renderiza com o cargo padrão (Coroinha)
+        renderServerSelect();
         renderMassOptions();
         renderMassTabs();
+        renderPublicScale();
         setupNavigation();
         setupRoleFilter();
         updateAttendanceList();
+        updateGeneralList();
+        initChart();
+        
+        btnExportPdf.addEventListener('click', exportToPDF);
     } catch (error) {
         console.error("Erro na inicialização:", error);
     }
 }
 
-// Buscar Dados do Supabase
 async function fetchData() {
     try {
         const { data: sData, error: sErr } = await supabaseClient.from('servers').select('*');
         if (sErr) throw sErr;
-        if (sData) servers = sData;
+        servers = sData || [];
 
         const { data: aData, error: aErr } = await supabaseClient.from('attendance').select('*');
         if (aErr) throw aErr;
-        if (aData) attendanceData = aData;
+        attendanceData = aData || [];
     } catch (e) {
         console.error("Erro ao buscar dados:", e);
         showToast("Erro ao conectar ao banco de dados.");
     }
 }
 
-// Navegação entre abas principais
 function setupNavigation() {
-    btnCoroinha.addEventListener('click', () => {
-        viewCoroinha.classList.remove('hidden');
-        viewLuiggi.classList.add('hidden');
-        btnCoroinha.classList.add('active');
-        btnLuiggi.classList.remove('active');
+    btnInscricao.addEventListener('click', () => {
+        showView(viewInscricao, btnInscricao);
     });
 
-    btnLuiggi.addEventListener('click', () => {
-        viewLuiggi.classList.remove('hidden');
-        viewCoroinha.classList.add('hidden');
-        btnLuiggi.classList.add('active');
-        btnCoroinha.classList.remove('active');
-        fetchData().then(() => updateAttendanceList()); // Recarrega dados ao abrir painel
+    btnControle.addEventListener('click', () => {
+        const pass = prompt("Digite a senha de acesso:");
+        if (pass === "121008") {
+            showView(viewControle, btnControle);
+            fetchData().then(() => {
+                updateAttendanceList();
+                updateGeneralList();
+                updateChart();
+            });
+        } else {
+            showToast("Senha incorreta!");
+        }
+    });
+
+    // Sub-navegação Controle
+    btnSubChamada.addEventListener('click', () => {
+        controlChamada.classList.remove('hidden');
+        controlRelatorio.classList.add('hidden');
+        btnSubChamada.classList.add('active');
+        btnSubRelatorio.classList.remove('active');
+        updateAttendanceList();
+    });
+
+    btnSubRelatorio.addEventListener('click', () => {
+        controlRelatorio.classList.remove('hidden');
+        controlChamada.classList.add('hidden');
+        btnSubRelatorio.classList.add('active');
+        btnSubChamada.classList.remove('active');
+        updateChart();
+        updateGeneralList();
     });
 }
 
-// Filtra a lista de nomes quando o cargo muda
+function showView(view, btn) {
+    [viewInscricao, viewControle].forEach(v => v.classList.add('hidden'));
+    [btnInscricao, btnControle].forEach(b => b.classList.remove('active'));
+    view.classList.remove('hidden');
+    btn.classList.add('active');
+}
+
 function setupRoleFilter() {
     roleInputs.forEach(input => {
-        input.addEventListener('change', () => {
-            renderServerSelect(input.value);
-        });
+        input.addEventListener('change', () => renderServerSelect(input.value));
     });
 }
 
-// Renderiza a lista de nomes no formulário (filtrada por cargo)
 function renderServerSelect(filterRole = "Coroinha") {
     selectName.innerHTML = '<option value="" disabled selected>Escolha seu nome...</option>';
-    
     servers
         .filter(s => s.cargo === filterRole)
         .sort((a,b) => a.nome.localeCompare(b.nome))
@@ -134,7 +160,6 @@ function renderServerSelect(filterRole = "Coroinha") {
         });
 }
 
-// Renderiza os cards de seleção de missa com DATA
 function renderMassOptions() {
     massOptions.innerHTML = '';
     massSchedules.forEach(m => {
@@ -151,7 +176,6 @@ function renderMassOptions() {
     });
 }
 
-// Lida com o envio do formulário
 formEscala.addEventListener('submit', async (e) => {
     e.preventDefault();
     const serverId = selectName.value;
@@ -168,9 +192,7 @@ formEscala.addEventListener('submit', async (e) => {
     btnSubmit.disabled = true;
 
     try {
-        // Remover escalas anteriores do usuário
         await supabaseClient.from('attendance').delete().eq('server_id', serverId);
-
         attendanceData = attendanceData.filter(item => item.server_id != serverId);
 
         const newEntries = selectedMasses.map(mId => ({
@@ -181,15 +203,14 @@ formEscala.addEventListener('submit', async (e) => {
         }));
 
         const { data, error } = await supabaseClient.from('attendance').insert(newEntries).select();
-        
         if (error) throw error;
-        
-        if (data) {
-             attendanceData.push(...data);
-        }
+        if (data) attendanceData.push(...data);
 
         showToast("Escala salva com sucesso! ⛪");
         formEscala.reset();
+        renderPublicScale();
+        updateGeneralList();
+        updateChart();
     } catch (err) {
         console.error("Erro ao salvar escala:", err);
         showToast("Erro ao salvar. Tente novamente.");
@@ -199,7 +220,7 @@ formEscala.addEventListener('submit', async (e) => {
     }
 });
 
-// --- Lógica do Luiggi (Dashboard) ---
+// Função renderPublicScale removida pois a lista agora está na aba Escala Geral
 
 function renderMassTabs() {
     massTabs.innerHTML = '';
@@ -209,13 +230,26 @@ function renderMassTabs() {
         tab.innerHTML = `<div>${m.dia}</div><small>${m.data} - ${m.hora}</small>`;
         tab.onclick = () => {
             selectedMassId = m.id;
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
+            updateTabStates();
             updateAttendanceList();
+            updateChart();
         };
         massTabs.appendChild(tab);
     });
 }
+
+function updateTabStates() {
+    const allTabs = document.querySelectorAll('#mass-tabs .tab');
+    allTabs.forEach((t, index) => {
+        if (massSchedules[index].id === selectedMassId) {
+            t.classList.add('active');
+        } else {
+            t.classList.remove('active');
+        }
+    });
+}
+
+// Funções de Abas do Relatório removidas para foco no gráfico geral do final de semana
 
 function updateAttendanceList() {
     const list = attendanceData.filter(a => a.mass_id === selectedMassId);
@@ -228,12 +262,10 @@ function updateAttendanceList() {
 
     list.forEach(entry => {
         const server = servers.find(s => s.id === entry.server_id);
-        if (!server) return; // Segurança caso o servidor não exista
+        if (!server) return;
         
         const item = document.createElement('div');
         item.className = 'attendance-item';
-        
-        // Badge de Cargo
         const roleClass = server.cargo === 'Acólito' ? 'role-acolito' : 'role-coroinha';
         
         item.innerHTML = `
@@ -242,37 +274,217 @@ function updateAttendanceList() {
                     <h4>${server.nome}</h4>
                     <span class="badge ${roleClass}">${server.cargo}</span>
                 </div>
-                <p>Status: ${entry.confirmed ? 'Presente' : 'Aguardando'}</p>
+                <p>Status: ${entry.status === 'present' ? 'Confirmado' : entry.status === 'absent' ? 'Ausente' : 'Aguardando'}</p>
             </div>
-            <button class="check-btn ${entry.confirmed ? 'present' : ''}" onclick="togglePresence(${entry.server_id}, '${entry.mass_id}')">
-                ${entry.confirmed ? '✅ Confirmado' : 'Confirmar'}
-            </button>
+            <div class="status-buttons">
+                <button class="status-btn ${entry.status === 'present' ? 'confirmed' : ''}" onclick="setStatus(${entry.server_id}, '${entry.mass_id}', 'present')">Confirmar</button>
+                <button class="status-btn ${entry.status === 'absent' ? 'absent' : ''}" onclick="setStatus(${entry.server_id}, '${entry.mass_id}', 'absent')">Ausente</button>
+            </div>
         `;
         attendanceList.appendChild(item);
     });
 }
 
-window.togglePresence = async function(serverId, massId) {
+function renderPublicScale() {
+    publicScaleList.innerHTML = '';
+    
+    // Agrupar inscrições por servidor e missa
+    const attendanceMap = {};
+    attendanceData.forEach(entry => {
+        if (!attendanceMap[entry.server_id]) attendanceMap[entry.server_id] = {};
+        attendanceMap[entry.server_id][entry.mass_id] = entry.status;
+    });
+
+    const sortedServers = [...servers].sort((a,b) => a.nome.localeCompare(b.nome));
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'scale-header';
+    header.innerHTML = `
+        <span>Nome</span>
+        <span>Sáb ${dates.sab}<br>17:00</span>
+        <span>Dom ${dates.dom}<br>09:00</span>
+        <span>Dom ${dates.dom}<br>11:00</span>
+        <span>Dom ${dates.dom}<br>18:00</span>
+    `;
+    publicScaleList.appendChild(header);
+
+    sortedServers.forEach(server => {
+        const div = document.createElement('div');
+        div.className = 'scale-row';
+        
+        const massIds = ['sab-17', 'dom-09', 'dom-11', 'dom-18'];
+        let html = `<span class="scale-name">${server.nome}</span>`;
+        
+        massIds.forEach(mId => {
+            const status = attendanceMap[server.id] ? attendanceMap[server.id][mId] : null;
+            let icon = 'I';
+            let cls = 'status-none';
+            
+            if (status === 'present') {
+                icon = 'P';
+                cls = 'status-present';
+            } else if (status === 'absent') {
+                icon = 'A';
+                cls = 'status-absent';
+            } else if (status === 'pending' || status === 'pretended') {
+                icon = '✔';
+                cls = 'status-present';
+            }
+            
+            html += `<div class="scale-col"><span class="status-icon ${cls}">${icon}</span></div>`;
+        });
+        
+        div.innerHTML = html;
+        publicScaleList.appendChild(div);
+    });
+}
+
+function updateGeneralList() {
+    generalStatusList.innerHTML = '';
+    
+    // Agrupar dias por servidor
+    const grouped = {};
+    attendanceData.forEach(entry => {
+        if (!grouped[entry.server_id]) grouped[entry.server_id] = [];
+        grouped[entry.server_id].push(entry);
+    });
+
+    const sortedServers = [...servers].sort((a,b) => a.nome.localeCompare(b.nome));
+    
+    sortedServers.forEach(server => {
+        const serverEntries = grouped[server.id] || [];
+        
+        let statusText = 'Inativo';
+        let statusClass = 'role-inativo';
+        let daysText = 'Não se inscreveu';
+
+        if (serverEntries.length > 0) {
+            // Se tiver pelo menos uma inscrição para o final de semana atual
+            daysText = serverEntries.map(e => {
+                const m = massSchedules.find(ms => ms.id === e.mass_id);
+                return m ? `${m.dia} ${m.data} (${m.hora})` : '';
+            }).filter(d => d !== '').join(', ');
+
+            // Status Agregado do Final de Semana
+            const hasConfirmed = serverEntries.some(e => e.status === 'present');
+            const hasAbsent = serverEntries.some(e => e.status === 'absent');
+            const hasPending = serverEntries.some(e => e.status === 'pretended');
+
+            if (hasConfirmed) {
+                statusText = 'Confirmado (Fim de Semana)';
+                statusClass = 'role-presente';
+            } else if (hasAbsent) {
+                statusText = 'Ausente (Fim de Semana)';
+                statusClass = 'role-ausente';
+            } else if (hasPending) {
+                statusText = 'Aguardando Confirmação';
+                statusClass = 'role-aguardando';
+            }
+        }
+
+        const item = document.createElement('div');
+        item.className = 'attendance-item';
+        const roleClass = server.cargo === 'Acólito' ? 'role-acolito' : 'role-coroinha';
+
+        item.innerHTML = `
+            <div class="person-info">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <h4>${server.nome}</h4>
+                    <span class="badge ${roleClass}">${server.cargo}</span>
+                </div>
+                <p style="margin-top: 5px; color: var(--primary); font-weight: 600;">Dias: ${daysText}</p>
+            </div>
+            <span class="badge ${statusClass}">${statusText}</span>
+        `;
+        generalStatusList.appendChild(item);
+    });
+}
+
+window.setStatus = async function(serverId, massId, status) {
     const entry = attendanceData.find(a => a.server_id === serverId && a.mass_id === massId);
     if (entry) {
-        const newConfirmedStatus = !entry.confirmed;
-        
+        const isConfirmed = (status === 'present');
         try {
             const { error } = await supabaseClient
                 .from('attendance')
-                .update({ confirmed: newConfirmedStatus })
+                .update({ status: status, confirmed: isConfirmed })
                 .eq('id', entry.id);
 
             if (error) throw error;
 
-            entry.confirmed = newConfirmedStatus;
+            entry.status = status;
+            entry.confirmed = isConfirmed;
             updateAttendanceList();
+            updateGeneralList();
+            updateChart();
         } catch (e) {
-            console.error("Erro ao atualizar presença", e);
+            console.error("Erro ao atualizar status", e);
             showToast("Erro ao atualizar.");
         }
     }
 };
+
+function initChart() {
+    const ctx = document.getElementById('attendanceChart').getContext('2d');
+    attendanceChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Com Escala (Presença Confirmada)', 'Com Escala (Aguardando/Ausente)', 'Não se Inscreveram'],
+            datasets: [{
+                data: [0, 0, 0],
+                backgroundColor: ['#27ae60', '#f1c40f', '#95a5a6'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+}
+
+function updateChart() {
+    if (!attendanceChart) return;
+    
+    // Agrupar inscrições por servidor
+    const grouped = {};
+    attendanceData.forEach(entry => {
+        if (!grouped[entry.server_id]) grouped[entry.server_id] = [];
+        grouped[entry.server_id].push(entry);
+    });
+
+    let confirmedCount = 0; // Pelo menos uma missa confirmada
+    let pendingCount = 0;   // Inscrito mas nada confirmado ainda
+    let inactiveCount = 0;  // Zero inscrições
+
+    servers.forEach(server => {
+        const entries = grouped[server.id] || [];
+        if (entries.length === 0) {
+            inactiveCount++;
+        } else if (entries.some(e => e.status === 'present')) {
+            confirmedCount++;
+        } else {
+            pendingCount++;
+        }
+    });
+
+    attendanceChart.data.datasets[0].data = [confirmedCount, pendingCount, inactiveCount];
+    attendanceChart.update();
+}
+
+function exportToPDF() {
+    const element = document.getElementById('view-luiggi');
+    const opt = {
+        margin: 10,
+        filename: `Escala_Geral_Controle.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save();
+}
 
 function showToast(msg) {
     toast.textContent = msg;
@@ -280,5 +492,4 @@ function showToast(msg) {
     setTimeout(() => toast.classList.add('hidden'), 3000);
 }
 
-// Inicia o app
 init();

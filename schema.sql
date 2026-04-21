@@ -17,14 +17,30 @@ CREATE TABLE public.attendance (
 
 -- Inserindo os dados iniciais dos coroinhas e acólitos
 INSERT INTO public.servers (id, nome, cargo) VALUES
-(1, 'João Silva', 'Coroinha'),
-(2, 'Maria Oliveira', 'Acólito'),
-(3, 'Pedro Santos', 'Coroinha'),
-(4, 'Ana Costa', 'Acólito'),
-(5, 'Lucas Lima', 'Coroinha');
+(1, 'Arthur', 'Acólito'),
+(2, 'Benjamin', 'Coroinha'),
+(3, 'Caio', 'Coroinha'),
+(4, 'Eduardo', 'Acólito'),
+(5, 'Enrique', 'Acólito'),
+(6, 'Felipe', 'Acólito'),
+(7, 'Filipe', 'Acólito'),
+(8, 'Guga', 'Coroinha'),
+(9, 'Guilherme', 'Acólito'),
+(10, 'Gusta', 'Acólito'),
+(11, 'Henrique Kolbe', 'Coroinha'),
+(12, 'João Vitor', 'Coroinha'),
+(13, 'Lucas Davi', 'Coroinha'),
+(14, 'Lucas S', 'Coroinha'),
+(15, 'Luiggi', 'Acólito'),
+(16, 'Martin', 'Coroinha'),
+(17, 'Michel', 'Acólito'),
+(18, 'Pedro Deveza', 'Acólito'),
+(19, 'Pedro L', 'Acólito'),
+(20, 'Rafael Kolbe', 'Coroinha'),
+(21, 'Rafael Ross', 'Acólito');
 
 -- Reinicia a sequência do ID para os próximos inseridos automaticamente não darem erro
-ALTER SEQUENCE public.servers_id_seq RESTART WITH 6;
+ALTER SEQUENCE public.servers_id_seq RESTART WITH 22;
 
 -- Habilitar Políticas de Segurança de Nível de Linha (RLS) - Permitir tudo para simplificar o frontend
 ALTER TABLE public.servers ENABLE ROW LEVEL SECURITY;

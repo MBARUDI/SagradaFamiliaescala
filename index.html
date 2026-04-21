@@ -15,17 +15,17 @@
             <p>Coordenação de Coroinhas e Acólitos</p>
         </div>
         <nav id="main-nav">
-            <button id="btn-coroinha" class="active">Coroinha ou Acólito</button>
-            <button id="btn-luiggi">Área do Luiggi</button>
+            <button id="btn-inscricao" class="active">Inscrição</button>
+            <button id="btn-controle">Controle</button>
         </nav>
     </header>
 
     <main id="app-container">
         <!-- O conteúdo será injetado pelo JavaScript -->
-        <section id="view-coroinha" class="view">
+        <section id="view-inscricao" class="view">
             <div class="card">
                 <h2>Escala do Final de Semana</h2>
-                <p class="subtitle">Selecione seu nome e os horários que você pode servir.</p>
+                <p class="subtitle">Selecione seu nome e as missas que você pode servir.</p>
                 
                 <form id="form-escala">
                     <div class="form-group">
@@ -43,44 +43,86 @@
                         <label for="select-name">Seu Nome</label>
                         <select id="select-name" required>
                             <option value="" disabled selected>Escolha seu nome...</option>
-                            <!-- Nomes inseridos dinamicamente -->
                         </select>
                     </div>
 
                     <div class="mass-selection">
                         <label>Quais missas você irá?</label>
                         <div id="mass-options" class="options-grid">
-                            <!-- Opções de missa inseridas dinamicamente -->
+                            <!-- Opções de missa -->
                         </div>
                     </div>
 
-                    <button type="submit" class="btn-primary">Salvar Disponibilidade</button>
+                    <button type="submit" class="btn-primary">Confirmar Disponibilidade</button>
                 </form>
+            </div>
+
+            <div class="public-scale" style="margin-top: 30px;">
+                <h3>Agenda da Semana</h3>
+                <div id="public-scale-list" class="scale-table">
+                    <!-- Lista pública -->
+                </div>
             </div>
         </section>
 
         <section id="view-luiggi" class="view hidden">
             <div class="dashboard-header">
-                <h2>Painel do Coordenador</h2>
-                <div class="date-selector">
-                    <span id="current-weekend-label">Final de Semana: --/--</span>
+                <h2>Área de Controle</h2>
+                <nav class="sub-tabs">
+                    <button id="btn-sub-chamada" class="sub-tab-btn active">Chamada</button>
+                    <button id="btn-sub-relatorio" class="sub-tab-btn">Relatório Geral</button>
+                </nav>
+            </div>
+
+            <!-- Sub-aba: Chamada (Presenças por Missa) -->
+            <div id="control-chamada" class="control-section">
+                <div class="dashboard-header" style="margin-top: 20px;">
+                    <h3>Confirmar Presenças</h3>
+                    <div class="date-selector">
+                        <span id="current-weekend-label">Final de Semana: --/--</span>
+                    </div>
+                </div>
+
+                <div id="mass-tabs" class="tabs">
+                    <!-- Abas de missa (Sáb/Dom) -->
+                </div>
+
+                <div id="attendance-list" class="attendance-card">
+                    <!-- Lista de presença -->
                 </div>
             </div>
 
-            <div id="mass-tabs" class="tabs">
-                <!-- Abas para cada missa -->
-            </div>
+            <!-- Sub-aba: Relatório Geral -->
+            <div id="control-relatorio" class="control-section hidden">
+                <div class="action-bar" style="margin-bottom: 20px;">
+                    <button id="btn-export-pdf" class="btn-export">📄 Exportar Relatório PDF</button>
+                </div>
 
-            <div id="attendance-list" class="attendance-card">
-                <!-- Lista de quem vai na missa selecionada -->
+                <div class="stats-container">
+                    <h3>Resumo Geral do Final de Semana</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="attendanceChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="stats-container">
+                    <h3>Escala Geral (Todos os Dias)</h3>
+                    <div id="general-status-list" class="attendance-card">
+                        <!-- Lista agregada -->
+                    </div>
+                </div>
             </div>
         </section>
     </main>
 
     <div id="toast" class="toast hidden">Mensagem aqui</div>
 
+    <!-- Bibliotecas Externas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
     <!-- Cliente do Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="app.js?v=1.3"></script>
+    <script src="app.js?v=1.4"></script>
 </body>
 </html>

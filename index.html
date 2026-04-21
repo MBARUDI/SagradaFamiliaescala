@@ -24,13 +24,48 @@
     </header>
 
     <main id="app-container">
-        <!-- O conteúdo será injetado pelo JavaScript -->
-        <section id="view-inscricao" class="view">
+        <!-- Tela de Seleção Inicial -->
+        <section id="view-selection" class="view">
+            <div class="selection-container">
+                <h2>O que deseja acessar?</h2>
+                <div class="selection-grid">
+                    <button id="btn-select-weekend" class="selection-card">
+                        <div class="card-icon">⛪</div>
+                        <div class="card-content">
+                            <h3>Missa de Final de Semana</h3>
+                            <p>Escala convencional de Sábado e Domingo</p>
+                        </div>
+                    </button>
+                    <button id="btn-select-special" class="selection-card">
+                        <div class="card-icon">🌟</div>
+                        <div class="card-content">
+                            <h3>Missa Especial</h3>
+                            <p>Datas comemorativas e eventos extras</p>
+                        </div>
+                    </button>
+                </div>
+                <button id="btn-admin-access" class="btn-link">Acesso Coordenador</button>
+            </div>
+        </section>
+
+        <!-- Inscrição (Final de Semana ou Especial) -->
+        <section id="view-inscricao" class="view hidden">
+            <div class="view-header">
+                <button class="btn-back">← Voltar</button>
+                <h2 id="inscricao-title">Escala do Final de Semana</h2>
+            </div>
+
             <div class="card">
-                <h2>Escala do Final de Semana</h2>
-                <p class="subtitle">Selecione seu nome e as missas que você pode servir.</p>
+                <p class="subtitle" id="inscricao-subtitle">Selecione seu nome e as missas que você pode servir.</p>
                 
                 <form id="form-escala">
+                    <div id="special-mass-picker-container" class="form-group hidden">
+                        <label for="select-special-mass">Selecione a Missa Especial</label>
+                        <select id="select-special-mass">
+                            <option value="" disabled selected>Carregando missas...</option>
+                        </select>
+                    </div>
+
                     <div class="form-group">
                         <label>Você é:</label>
                         <div class="role-selector">
@@ -50,7 +85,7 @@
                     </div>
 
                     <div class="mass-selection">
-                        <label>Quais missas você irá?</label>
+                        <label id="label-quais-missas">Quais missas você irá?</label>
                         <div id="mass-options" class="options-grid">
                             <!-- Opções de missa -->
                         </div>
@@ -61,7 +96,7 @@
             </div>
 
             <div class="public-scale" style="margin-top: 30px;">
-                <h3>Agenda da Semana</h3>
+                <h3>Agenda Atual</h3>
                 <div id="public-scale-list" class="scale-table">
                     <!-- Lista pública -->
                 </div>
@@ -69,10 +104,15 @@
         </section>
 
         <section id="view-luiggi" class="view hidden">
-            <div class="dashboard-header">
+            <div class="view-header">
+                <button class="btn-back">← Voltar</button>
                 <h2>Área de Controle</h2>
+            </div>
+            
+            <div class="dashboard-header">
                 <nav class="sub-tabs">
                     <button id="btn-sub-chamada" class="sub-tab-btn active">Chamada</button>
+                    <button id="btn-sub-especial" class="sub-tab-btn">Nova Missa Especial</button>
                     <button id="btn-sub-relatorio" class="sub-tab-btn">Relatório Geral</button>
                 </nav>
             </div>
@@ -87,11 +127,42 @@
                 </div>
 
                 <div id="mass-tabs" class="tabs">
-                    <!-- Abas de missa (Sáb/Dom) -->
+                    <!-- Abas de missa (Sáb/Dom ou Especiais) -->
                 </div>
 
                 <div id="attendance-list" class="attendance-card">
                     <!-- Lista de presença -->
+                </div>
+            </div>
+
+            <!-- Sub-aba: Cadastro de Missa Especial -->
+            <div id="control-especial" class="control-section hidden">
+                <div class="card">
+                    <h3>Cadastrar Missa Especial</h3>
+                    <form id="form-special-mass">
+                        <div class="form-group">
+                            <label for="special-desc">Descrição (Ex: Missa de Natal)</label>
+                            <input type="text" id="special-desc" placeholder="Nome do evento" required>
+                        </div>
+                        <div class="form-row" style="display: flex; gap: 15px;">
+                            <div class="form-group" style="flex: 1;">
+                                <label for="special-date">Data</label>
+                                <input type="date" id="special-date" required>
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label for="special-time">Hora</label>
+                                <input type="time" id="special-time" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary">Criar Missa Especial</button>
+                    </form>
+                </div>
+
+                <div class="stats-container" style="margin-top: 20px;">
+                    <h3>Missas Especiais Ativas</h3>
+                    <div id="special-mass-list" class="attendance-card">
+                        <!-- Lista de missas especiais criadas -->
+                    </div>
                 </div>
             </div>
 
@@ -102,14 +173,14 @@
                 </div>
 
                 <div class="stats-container">
-                    <h3>Resumo Geral do Final de Semana</h3>
+                    <h3>Resumo Geral</h3>
                     <div class="chart-wrapper">
                         <canvas id="attendanceChart"></canvas>
                     </div>
                 </div>
 
                 <div class="stats-container">
-                    <h3>Escala Geral (Todos os Dias)</h3>
+                    <h3>Escala Geral</h3>
                     <div id="general-status-list" class="attendance-card">
                         <!-- Lista agregada -->
                     </div>

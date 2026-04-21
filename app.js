@@ -6,7 +6,10 @@ const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 // Dados dinâmicos
 let servers = [];
 let attendanceData = [];
+let specialMasses = [];
 let attendanceChart = null;
+let currentMode = 'weekend'; // 'weekend' ou 'special'
+let currentSpecialMassId = null;
 
 // Lógica de Datas do Final de Semana
 function getWeekendDates() {
@@ -36,11 +39,19 @@ const massSchedules = [
 let selectedMassId = 'sab-17';
 
 // Elementos do DOM
+const viewSelection = document.getElementById('view-selection');
 const viewInscricao = document.getElementById('view-inscricao');
 const viewControle = document.getElementById('view-luiggi');
 
-const btnInscricao = document.getElementById('btn-inscricao');
-const btnControle = document.getElementById('btn-controle');
+const btnSelectWeekend = document.getElementById('btn-select-weekend');
+const btnSelectSpecial = document.getElementById('btn-select-special');
+const btnAdminAccess = document.getElementById('btn-admin-access');
+const btnsBack = document.querySelectorAll('.btn-back');
+
+const inscricaoTitle = document.getElementById('inscricao-title');
+const inscricaoSubtitle = document.getElementById('inscricao-subtitle');
+const specialMassPickerContainer = document.getElementById('special-mass-picker-container');
+const selectSpecialMass = document.getElementById('select-special-mass');
 
 const selectName = document.getElementById('select-name');
 const massOptions = document.getElementById('mass-options');
@@ -53,26 +64,27 @@ const toast = document.getElementById('toast');
 
 // Sub-abas Controle
 const btnSubChamada = document.getElementById('btn-sub-chamada');
+const btnSubEspecial = document.getElementById('btn-sub-especial');
 const btnSubRelatorio = document.getElementById('btn-sub-relatorio');
 const controlChamada = document.getElementById('control-chamada');
+const controlEspecial = document.getElementById('control-especial');
 const controlRelatorio = document.getElementById('control-relatorio');
 const weekendLabel = document.getElementById('current-weekend-label');
 const roleInputs = document.querySelectorAll('input[name="user-role"]');
 const btnExportPdf = document.getElementById('btn-export-pdf');
+
+// Form Missa Especial
+const formSpecialMass = document.getElementById('form-special-mass');
+const specialMassList = document.getElementById('special-mass-list');
 
 // Inicialização
 async function init() {
     try {
         if (weekendLabel) weekendLabel.textContent = `Final de Semana: ${dates.weekendRange}`;
         await fetchData();
-        renderServerSelect();
-        renderMassOptions();
-        renderMassTabs();
-        renderPublicScale();
         setupNavigation();
         setupRoleFilter();
-        updateAttendanceList();
-        updateGeneralList();
+        setupSpecialMassForm();
         initChart();
         
         btnExportPdf.addEventListener('click', exportToPDF);
@@ -90,6 +102,13 @@ async function fetchData() {
         const { data: aData, error: aErr } = await supabaseClient.from('attendance').select('*');
         if (aErr) throw aErr;
         attendanceData = aData || [];
+
+        const { data: mData, error: mErr } = await supabaseClient.from('special_masses').select('*').order('mass_date', { ascending: true });
+        if (mErr) throw mErr;
+        specialMasses = mData || [];
+        
+        renderSpecialMassSelect();
+        renderSpecialMassListAdmin();
     } catch (e) {
         console.error("Erro ao buscar dados:", e);
         showToast("Erro ao conectar ao banco de dados.");
@@ -97,15 +116,36 @@ async function fetchData() {
 }
 
 function setupNavigation() {
-    btnInscricao.addEventListener('click', () => {
-        showView(viewInscricao, btnInscricao);
+    btnSelectWeekend.addEventListener('click', () => {
+        currentMode = 'weekend';
+        inscricaoTitle.textContent = "Escala do Final de Semana";
+        inscricaoSubtitle.textContent = "Selecione seu nome e as missas que você pode servir.";
+        specialMassPickerContainer.classList.add('hidden');
+        document.getElementById('label-quais-missas').classList.remove('hidden');
+        showView(viewInscricao);
+        renderServerSelect();
+        renderMassOptions();
+        renderPublicScale();
     });
 
-    btnControle.addEventListener('click', () => {
+    btnSelectSpecial.addEventListener('click', () => {
+        currentMode = 'special';
+        inscricaoTitle.textContent = "Missa Especial";
+        inscricaoSubtitle.textContent = "Selecione a missa, seu nome e informe se estará presente.";
+        specialMassPickerContainer.classList.remove('hidden');
+        document.getElementById('label-quais-missas').classList.add('hidden');
+        showView(viewInscricao);
+        renderServerSelect();
+        renderMassOptions();
+        renderPublicScale();
+    });
+
+    btnAdminAccess.addEventListener('click', () => {
         const pass = prompt("Digite a senha de acesso:");
         if (pass === "121008") {
-            showView(viewControle, btnControle);
+            showView(viewControle);
             fetchData().then(() => {
+                renderMassTabs();
                 updateAttendanceList();
                 updateGeneralList();
                 updateChart();
@@ -115,29 +155,40 @@ function setupNavigation() {
         }
     });
 
+    btnsBack.forEach(btn => {
+        btn.addEventListener('click', () => {
+            showView(viewSelection);
+        });
+    });
+
     // Sub-navegação Controle
     btnSubChamada.addEventListener('click', () => {
-        controlChamada.classList.remove('hidden');
-        controlRelatorio.classList.add('hidden');
-        btnSubChamada.classList.add('active');
-        btnSubRelatorio.classList.remove('active');
+        showControlSection(controlChamada, btnSubChamada);
+        renderMassTabs();
         updateAttendanceList();
     });
 
+    btnSubEspecial.addEventListener('click', () => {
+        showControlSection(controlEspecial, btnSubEspecial);
+        renderSpecialMassListAdmin();
+    });
+
     btnSubRelatorio.addEventListener('click', () => {
-        controlRelatorio.classList.remove('hidden');
-        controlChamada.classList.add('hidden');
-        btnSubRelatorio.classList.add('active');
-        btnSubChamada.classList.remove('active');
+        showControlSection(controlRelatorio, btnSubRelatorio);
         updateChart();
         updateGeneralList();
     });
 }
 
-function showView(view, btn) {
-    [viewInscricao, viewControle].forEach(v => v.classList.add('hidden'));
-    [btnInscricao, btnControle].forEach(b => b.classList.remove('active'));
+function showView(view) {
+    [viewSelection, viewInscricao, viewControle].forEach(v => v.classList.add('hidden'));
     view.classList.remove('hidden');
+}
+
+function showControlSection(section, btn) {
+    [controlChamada, controlEspecial, controlRelatorio].forEach(s => s.classList.add('hidden'));
+    [btnSubChamada, btnSubEspecial, btnSubRelatorio].forEach(b => b.classList.remove('active'));
+    section.classList.remove('hidden');
     btn.classList.add('active');
 }
 
@@ -160,30 +211,101 @@ function renderServerSelect(filterRole = "Coroinha") {
         });
 }
 
+function renderSpecialMassSelect() {
+    selectSpecialMass.innerHTML = '<option value="" disabled selected>Escolha a missa especial...</option>';
+    if (specialMasses.length === 0) {
+        selectSpecialMass.innerHTML = '<option value="" disabled>Nenhuma missa especial cadastrada</option>';
+        return;
+    }
+    specialMasses.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        const [y, mon, d] = m.mass_date.split('-');
+        opt.textContent = `${m.description} (${d}/${mon} às ${m.mass_time.substring(0,5)})`;
+        selectSpecialMass.appendChild(opt);
+    });
+
+    selectSpecialMass.onchange = () => {
+        currentSpecialMassId = selectSpecialMass.value;
+        renderMassOptions();
+        renderPublicScale();
+    };
+}
+
 function renderMassOptions() {
     massOptions.innerHTML = '';
-    massSchedules.forEach(m => {
+    
+    if (currentMode === 'weekend') {
+        massSchedules.forEach(m => {
+            const div = document.createElement('div');
+            div.className = 'mass-item';
+            div.innerHTML = `
+                <input type="checkbox" id="check-${m.id}" name="mass" value="${m.id}">
+                <label for="check-${m.id}" class="mass-label">
+                    <span>${m.dia} (${m.data})</span>
+                    <span>${m.hora}</span>
+                </label>
+            `;
+            massOptions.appendChild(div);
+        });
+    } else if (currentMode === 'special' && currentSpecialMassId) {
+        // Para missa especial, mostramos apenas duas opções: Presente ou Ausente
         const div = document.createElement('div');
-        div.className = 'mass-item';
+        div.className = 'options-grid';
+        div.style.gridTemplateColumns = '1fr 1fr';
+        div.style.width = '100%';
         div.innerHTML = `
-            <input type="checkbox" id="check-${m.id}" name="mass" value="${m.id}">
-            <label for="check-${m.id}" class="mass-label">
-                <span>${m.dia} (${m.data})</span>
-                <span>${m.hora}</span>
-            </label>
+            <div class="mass-item">
+                <input type="radio" id="special-present" name="special-status" value="present" checked>
+                <label for="special-present" class="mass-label">
+                    <span>Estarei Presente</span>
+                    <span>Confirmar presença</span>
+                </label>
+            </div>
+            <div class="mass-item">
+                <input type="radio" id="special-absent" name="special-status" value="absent">
+                <label for="special-absent" class="mass-label">
+                    <span>Estarei Ausente</span>
+                    <span>Informar falta</span>
+                </label>
+            </div>
         `;
         massOptions.appendChild(div);
-    });
+    } else if (currentMode === 'special') {
+        massOptions.innerHTML = '<p style="text-align:center; color:#7f8c8d;">Selecione uma missa especial acima primeiro.</p>';
+    }
 }
 
 formEscala.addEventListener('submit', async (e) => {
     e.preventDefault();
     const serverId = selectName.value;
-    const selectedMasses = Array.from(document.querySelectorAll('input[name="mass"]:checked')).map(i => i.value);
-
-    if (selectedMasses.length === 0) {
-        showToast("Selecione pelo menos uma missa!");
-        return;
+    
+    let selectedEntries = [];
+    
+    if (currentMode === 'weekend') {
+        const selectedMasses = Array.from(document.querySelectorAll('input[name="mass"]:checked')).map(i => i.value);
+        if (selectedMasses.length === 0) {
+            showToast("Selecione pelo menos uma missa!");
+            return;
+        }
+        selectedEntries = selectedMasses.map(mId => ({
+            server_id: parseInt(serverId),
+            mass_id: mId,
+            status: 'pretended',
+            confirmed: false
+        }));
+    } else {
+        if (!currentSpecialMassId) {
+            showToast("Selecione a missa especial!");
+            return;
+        }
+        const status = document.querySelector('input[name="special-status"]:checked').value;
+        selectedEntries = [{
+            server_id: parseInt(serverId),
+            mass_id: `special-${currentSpecialMassId}`,
+            status: status,
+            confirmed: (status === 'present')
+        }];
     }
 
     const btnSubmit = formEscala.querySelector('button[type="submit"]');
@@ -192,22 +314,50 @@ formEscala.addEventListener('submit', async (e) => {
     btnSubmit.disabled = true;
 
     try {
-        await supabaseClient.from('attendance').delete().eq('server_id', serverId);
-        attendanceData = attendanceData.filter(item => item.server_id != serverId);
+        // Para final de semana, removemos as inscrições anteriores de final de semana
+        if (currentMode === 'weekend') {
+            const weekendIds = massSchedules.map(m => m.id);
+            await supabaseClient.from('attendance').delete().eq('server_id', serverId).in('mass_id', weekendIds);
+            attendanceData = attendanceData.filter(item => item.server_id != serverId || !weekendIds.includes(item.mass_id));
+        } else {
+            // Para especial, removemos apenas a inscrição dessa missa especial específica
+            const mId = `special-${currentSpecialMassId}`;
+            await supabaseClient.from('attendance').delete().eq('server_id', serverId).eq('mass_id', mId);
+            attendanceData = attendanceData.filter(item => item.server_id != serverId || item.mass_id != mId);
+        }
 
-        const newEntries = selectedMasses.map(mId => ({
-            server_id: parseInt(serverId),
-            mass_id: mId,
-            status: 'pretended',
-            confirmed: false
-        }));
-
-        const { data, error } = await supabaseClient.from('attendance').insert(newEntries).select();
+        const { data, error } = await supabaseClient.from('attendance').insert(selectedEntries).select();
         if (error) throw error;
         if (data) attendanceData.push(...data);
 
-        showToast("Escala salva com sucesso! ⛪");
+        // Mensagem customizada conforme solicitado
+        if (currentMode === 'special') {
+            const m = specialMasses.find(sm => sm.id == currentSpecialMassId);
+            const massName = m ? m.description : "Missa Especial";
+            const status = document.querySelector('input[name="special-status"]:checked').value;
+            if (status === 'present') {
+                showToast(`Você foi cadastrado como presente na ${massName}! 🌟`);
+            } else {
+                showToast("Sua ausência foi informada com sucesso.");
+            }
+        } else {
+            const selectedMassesIds = Array.from(document.querySelectorAll('input[name="mass"]:checked')).map(i => i.value);
+            const chosenDetails = selectedMassesIds.map(id => {
+                const m = massSchedules.find(ms => ms.id === id);
+                return m ? `${m.dia} (${m.hora})` : '';
+            }).filter(d => d !== '').join(', ');
+            
+            showToast(`Inscrito com sucesso nas missas: ${chosenDetails} ⛪`);
+        }
+
         formEscala.reset();
+        // Não resetamos mais o currentSpecialMassId para permitir que o servidor veja sua marcação na agenda
+        if (currentMode === 'special') {
+            renderSpecialMassSelect();
+            // Restauramos o valor selecionado no select para manter a visualização
+            selectSpecialMass.value = currentSpecialMassId;
+        }
+        renderMassOptions();
         renderPublicScale();
         updateGeneralList();
         updateChart();
@@ -220,10 +370,10 @@ formEscala.addEventListener('submit', async (e) => {
     }
 });
 
-// Função renderPublicScale removida pois a lista agora está na aba Escala Geral
-
 function renderMassTabs() {
     massTabs.innerHTML = '';
+    
+    // Adiciona abas do final de semana
     massSchedules.forEach(m => {
         const tab = document.createElement('div');
         tab.className = `tab ${selectedMassId === m.id ? 'active' : ''}`;
@@ -236,20 +386,39 @@ function renderMassTabs() {
         };
         massTabs.appendChild(tab);
     });
+
+    // Adiciona abas das missas especiais
+    specialMasses.forEach(m => {
+        const mId = `special-${m.id}`;
+        const tab = document.createElement('div');
+        tab.className = `tab ${selectedMassId === mId ? 'active' : ''}`;
+        const [y, mon, d] = m.mass_date.split('-');
+        tab.innerHTML = `<div>${m.description}</div><small>${d}/${mon} - ${m.mass_time.substring(0,5)}</small>`;
+        tab.onclick = () => {
+            selectedMassId = mId;
+            updateTabStates();
+            updateAttendanceList();
+            updateChart();
+        };
+        massTabs.appendChild(tab);
+    });
 }
 
 function updateTabStates() {
     const allTabs = document.querySelectorAll('#mass-tabs .tab');
+    const combinedSchedules = [
+        ...massSchedules.map(m => m.id),
+        ...specialMasses.map(m => `special-${m.id}`)
+    ];
+    
     allTabs.forEach((t, index) => {
-        if (massSchedules[index].id === selectedMassId) {
+        if (combinedSchedules[index] === selectedMassId) {
             t.classList.add('active');
         } else {
             t.classList.remove('active');
         }
     });
 }
-
-// Funções de Abas do Relatório removidas para foco no gráfico geral do final de semana
 
 function updateAttendanceList() {
     const list = attendanceData.filter(a => a.mass_id === selectedMassId);
@@ -260,35 +429,67 @@ function updateAttendanceList() {
         return;
     }
 
-    list.forEach(entry => {
-        const server = servers.find(s => s.id === entry.server_id);
-        if (!server) return;
-        
-        const item = document.createElement('div');
-        item.className = 'attendance-item';
-        const roleClass = server.cargo === 'Acólito' ? 'role-acolito' : 'role-coroinha';
-        
-        item.innerHTML = `
-            <div class="person-info">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <h4>${server.nome}</h4>
-                    <span class="badge ${roleClass}">${server.cargo}</span>
-                </div>
-                <p>Status: ${entry.status === 'present' ? 'Confirmado' : entry.status === 'absent' ? 'Ausente' : 'Aguardando'}</p>
-            </div>
-            <div class="status-buttons">
-                <button class="status-btn ${entry.status === 'present' ? 'confirmed' : ''}" onclick="setStatus(${entry.server_id}, '${entry.mass_id}', 'present')">Confirmar</button>
-                <button class="status-btn ${entry.status === 'absent' ? 'absent' : ''}" onclick="setStatus(${entry.server_id}, '${entry.mass_id}', 'absent')">Ausente</button>
-            </div>
-        `;
-        attendanceList.appendChild(item);
+    // Dividir por cargo
+    const acolitos = list.filter(a => {
+        const s = servers.find(srv => srv.id === a.server_id);
+        return s && s.cargo === 'Acólito';
+    }).sort((a,b) => {
+        const sa = servers.find(s => s.id === a.server_id);
+        const sb = servers.find(s => s.id === b.server_id);
+        return sa.nome.localeCompare(sb.nome);
     });
+
+    const coroinhas = list.filter(a => {
+        const s = servers.find(srv => srv.id === a.server_id);
+        return s && s.cargo === 'Coroinha';
+    }).sort((a,b) => {
+        const sa = servers.find(s => s.id === a.server_id);
+        const sb = servers.find(s => s.id === b.server_id);
+        return sa.nome.localeCompare(sb.nome);
+    });
+
+    const renderSection = (title, items) => {
+        if (items.length === 0) return;
+        const h = document.createElement('h4');
+        h.style.margin = "20px 0 10px 0";
+        h.style.color = "var(--primary)";
+        h.style.borderBottom = "2px solid var(--secondary)";
+        h.style.paddingBottom = "5px";
+        h.textContent = title;
+        attendanceList.appendChild(h);
+
+        items.forEach(entry => {
+            const server = servers.find(s => s.id === entry.server_id);
+            if (!server) return;
+            
+            const item = document.createElement('div');
+            item.className = 'attendance-item';
+            const roleClass = server.cargo === 'Acólito' ? 'role-acolito' : 'role-coroinha';
+            
+            item.innerHTML = `
+                <div class="person-info">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <h4>${server.nome}</h4>
+                        <span class="badge ${roleClass}">${server.cargo}</span>
+                    </div>
+                    <p>Status: ${entry.status === 'present' ? 'Confirmado' : entry.status === 'absent' ? 'Ausente' : 'Aguardando'}</p>
+                </div>
+                <div class="status-buttons">
+                    <button class="status-btn ${entry.status === 'present' ? 'confirmed' : ''}" onclick="setStatus(${entry.server_id}, '${entry.mass_id}', 'present')">Confirmar</button>
+                    <button class="status-btn ${entry.status === 'absent' ? 'absent' : ''}" onclick="setStatus(${entry.server_id}, '${entry.mass_id}', 'absent')">Ausente</button>
+                </div>
+            `;
+            attendanceList.appendChild(item);
+        });
+    };
+
+    renderSection("Acólitos", acolitos);
+    renderSection("Coroinhas", coroinhas);
 }
 
 function renderPublicScale() {
     publicScaleList.innerHTML = '';
     
-    // Agrupar inscrições por servidor e missa
     const attendanceMap = {};
     attendanceData.forEach(entry => {
         if (!attendanceMap[entry.server_id]) attendanceMap[entry.server_id] = {};
@@ -297,23 +498,40 @@ function renderPublicScale() {
 
     const sortedServers = [...servers].sort((a,b) => a.nome.localeCompare(b.nome));
 
-    // Header
+    let massIds = [];
+    let headers = ['Nome'];
+
+    if (currentMode === 'weekend') {
+        massIds = ['sab-17', 'dom-09', 'dom-11', 'dom-18'];
+        headers.push(`Sáb ${dates.sab}<br>17:00`, `Dom ${dates.dom}<br>09:00`, `Dom ${dates.dom}<br>11:00`, `Dom ${dates.dom}<br>18:00`);
+    } else {
+        if (!currentSpecialMassId) {
+            publicScaleList.innerHTML = '<p style="text-align:center; padding:20px;">Selecione uma missa especial para ver a agenda.</p>';
+            return;
+        }
+        const m = specialMasses.find(sm => sm.id == currentSpecialMassId);
+        const [y, mon, d] = m.mass_date.split('-');
+        massIds = [`special-${currentSpecialMassId}`];
+        headers.push(`${m.description}<br>${d}/${mon} ${m.mass_time.substring(0,5)}`);
+    }
+
     const header = document.createElement('div');
     header.className = 'scale-header';
-    header.innerHTML = `
-        <span>Nome</span>
-        <span>Sáb ${dates.sab}<br>17:00</span>
-        <span>Dom ${dates.dom}<br>09:00</span>
-        <span>Dom ${dates.dom}<br>11:00</span>
-        <span>Dom ${dates.dom}<br>18:00</span>
-    `;
+    header.style.gridTemplateColumns = `160px repeat(${massIds.length}, 1fr)`;
+    if (window.innerWidth <= 768) header.style.gridTemplateColumns = `85px repeat(${massIds.length}, 1fr)`;
+
+    headers.forEach((h, i) => {
+        const span = document.createElement('span');
+        span.innerHTML = h;
+        header.appendChild(span);
+    });
     publicScaleList.appendChild(header);
 
     sortedServers.forEach(server => {
         const div = document.createElement('div');
         div.className = 'scale-row';
+        div.style.gridTemplateColumns = header.style.gridTemplateColumns;
         
-        const massIds = ['sab-17', 'dom-09', 'dom-11', 'dom-18'];
         let html = `<span class="scale-name">${server.nome}</span>`;
         
         massIds.forEach(mId => {
@@ -343,7 +561,6 @@ function renderPublicScale() {
 function updateGeneralList() {
     generalStatusList.innerHTML = '';
     
-    // Agrupar dias por servidor
     const grouped = {};
     attendanceData.forEach(entry => {
         if (!grouped[entry.server_id]) grouped[entry.server_id] = [];
@@ -360,25 +577,31 @@ function updateGeneralList() {
         let daysText = 'Não se inscreveu';
 
         if (serverEntries.length > 0) {
-            // Se tiver pelo menos uma inscrição para o final de semana atual
             daysText = serverEntries.map(e => {
-                const m = massSchedules.find(ms => ms.id === e.mass_id);
-                return m ? `${m.dia} ${m.data} (${m.hora})` : '';
+                if (e.mass_id.startsWith('special-')) {
+                    const id = e.mass_id.replace('special-', '');
+                    const m = specialMasses.find(sm => sm.id == id);
+                    if (!m) return '';
+                    const [y, mon, d] = m.mass_date.split('-');
+                    return `${m.description} (${d}/${mon})`;
+                } else {
+                    const m = massSchedules.find(ms => ms.id === e.mass_id);
+                    return m ? `${m.dia} ${m.data}` : '';
+                }
             }).filter(d => d !== '').join(', ');
 
-            // Status Agregado do Final de Semana
             const hasConfirmed = serverEntries.some(e => e.status === 'present');
             const hasAbsent = serverEntries.some(e => e.status === 'absent');
             const hasPending = serverEntries.some(e => e.status === 'pretended');
 
             if (hasConfirmed) {
-                statusText = 'Confirmado (Fim de Semana)';
+                statusText = 'Confirmado';
                 statusClass = 'role-presente';
             } else if (hasAbsent) {
-                statusText = 'Ausente (Fim de Semana)';
+                statusText = 'Ausente';
                 statusClass = 'role-ausente';
             } else if (hasPending) {
-                statusText = 'Aguardando Confirmação';
+                statusText = 'Aguardando';
                 statusClass = 'role-aguardando';
             }
         }
@@ -393,7 +616,7 @@ function updateGeneralList() {
                     <h4>${server.nome}</h4>
                     <span class="badge ${roleClass}">${server.cargo}</span>
                 </div>
-                <p style="margin-top: 5px; font-weight: 600;">Dias: ${daysText}</p>
+                <p style="margin-top: 5px; font-weight: 600;">Escalado em: ${daysText}</p>
             </div>
             <span class="badge ${statusClass}">${statusText}</span>
         `;
@@ -425,12 +648,92 @@ window.setStatus = async function(serverId, massId, status) {
     }
 };
 
+function setupSpecialMassForm() {
+    formSpecialMass.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const desc = document.getElementById('special-desc').value;
+        const date = document.getElementById('special-date').value;
+        const time = document.getElementById('special-time').value;
+
+        const btn = formSpecialMass.querySelector('button');
+        btn.disabled = true;
+        btn.textContent = "Criando...";
+
+        try {
+            const { data, error } = await supabaseClient
+                .from('special_masses')
+                .insert([{ description: desc, mass_date: date, mass_time: time }])
+                .select();
+
+            if (error) throw error;
+            
+            showToast("Missa especial criada com sucesso! 🌟");
+            formSpecialMass.reset();
+            await fetchData();
+            renderSpecialMassListAdmin();
+        } catch (err) {
+            console.error(err);
+            const errorMsg = err.message || "Erro desconhecido";
+            showToast(`Erro: ${errorMsg}`);
+            
+            if (errorMsg.includes("404") || errorMsg.includes("not found")) {
+                showToast("Erro: A tabela 'special_masses' não foi encontrada no banco.");
+            }
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Criar Missa Especial";
+        }
+    });
+}
+
+function renderSpecialMassListAdmin() {
+    specialMassList.innerHTML = '';
+    if (specialMasses.length === 0) {
+        specialMassList.innerHTML = '<p style="text-align:center; padding:20px;">Nenhuma missa especial cadastrada.</p>';
+        return;
+    }
+
+    specialMasses.forEach(m => {
+        const item = document.createElement('div');
+        item.className = 'attendance-item';
+        const [y, mon, d] = m.mass_date.split('-');
+        item.innerHTML = `
+            <div class="person-info">
+                <h4>${m.description}</h4>
+                <p>${d}/${mon}/${y} às ${m.mass_time.substring(0,5)}</p>
+            </div>
+            <button class="status-btn absent" onclick="deleteSpecialMass(${m.id})">Excluir</button>
+        `;
+        specialMassList.appendChild(item);
+    });
+}
+
+window.deleteSpecialMass = async function(id) {
+    if (!confirm("Tem certeza que deseja excluir esta missa especial e todas as suas presenças?")) return;
+    
+    try {
+        const mId = `special-${id}`;
+        await supabaseClient.from('attendance').delete().eq('mass_id', mId);
+        const { error } = await supabaseClient.from('special_masses').delete().eq('id', id);
+        if (error) throw error;
+        
+        showToast("Missa excluída!");
+        await fetchData();
+        renderSpecialMassListAdmin();
+    } catch (err) {
+        console.error(err);
+        showToast("Erro ao excluir.");
+    }
+};
+
 function initChart() {
-    const ctx = document.getElementById('attendanceChart').getContext('2d');
+    const canvas = document.getElementById('attendanceChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
     attendanceChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Com Escala (Presença Confirmada)', 'Com Escala (Aguardando/Ausente)', 'Não se Inscreveram'],
+            labels: ['Confirmados', 'Aguardando/Ausente', 'Não Inscritos'],
             datasets: [{
                 data: [0, 0, 0],
                 backgroundColor: ['#27ae60', '#f1c40f', '#95a5a6'],
@@ -448,16 +751,15 @@ function initChart() {
 function updateChart() {
     if (!attendanceChart) return;
     
-    // Agrupar inscrições por servidor
     const grouped = {};
     attendanceData.forEach(entry => {
         if (!grouped[entry.server_id]) grouped[entry.server_id] = [];
         grouped[entry.server_id].push(entry);
     });
 
-    let confirmedCount = 0; // Pelo menos uma missa confirmada
-    let pendingCount = 0;   // Inscrito mas nada confirmado ainda
-    let inactiveCount = 0;  // Zero inscrições
+    let confirmedCount = 0;
+    let pendingCount = 0;
+    let inactiveCount = 0;
 
     servers.forEach(server => {
         const entries = grouped[server.id] || [];
@@ -478,7 +780,7 @@ function exportToPDF() {
     const element = document.getElementById('view-luiggi');
     const opt = {
         margin: 10,
-        filename: `Escala_Geral_Controle.pdf`,
+        filename: `Escala_Geral_SagradaFamilia.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }

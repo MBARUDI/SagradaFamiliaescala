@@ -33,7 +33,7 @@ const massSchedules = [
     { id: 'sab-17', dia: 'Sábado', data: dates.sab, hora: '17:00' },
     { id: 'dom-09', dia: 'Domingo', data: dates.dom, hora: '09:00' },
     { id: 'dom-11', dia: 'Domingo', data: dates.dom, hora: '11:00' },
-    { id: 'dom-18', dia: 'Domingo', data: dates.dom, hora: '18:00' },
+    { id: 'dom-18', dia: 'Domingo', data: dates.dom, hora: '18:30' },
 ];
 
 let selectedMassId = 'sab-17';
@@ -46,6 +46,7 @@ const viewControle = document.getElementById('view-luiggi');
 const btnSelectWeekend = document.getElementById('btn-select-weekend');
 const btnSelectSpecial = document.getElementById('btn-select-special');
 const btnAdminAccess = document.getElementById('btn-admin-access');
+const btnControle = document.getElementById('btn-controle');
 const btnsBack = document.querySelectorAll('.btn-back');
 
 const inscricaoTitle = document.getElementById('inscricao-title');

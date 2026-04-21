@@ -156,12 +156,15 @@ function setupNavigation() {
         }
     };
 
-    btnAdminAccess.addEventListener('click', openAdminArea);
-    btnControle.addEventListener('click', openAdminArea);
+    if (btnAdminAccess) btnAdminAccess.addEventListener('click', openAdminArea);
+    if (btnControle) btnControle.addEventListener('click', openAdminArea);
 
     btnsBack.forEach(btn => {
         btn.addEventListener('click', () => {
             showView(viewSelection);
+            // Também resetamos o modo ao voltar para a seleção
+            currentMode = 'weekend'; 
+            currentSpecialMassId = null;
         });
     });
 

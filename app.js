@@ -140,7 +140,7 @@ function setupNavigation() {
         renderPublicScale();
     });
 
-    btnAdminAccess.addEventListener('click', () => {
+    const openAdminArea = () => {
         const pass = prompt("Digite a senha de acesso:");
         if (pass === "121008") {
             showView(viewControle);
@@ -153,7 +153,10 @@ function setupNavigation() {
         } else {
             showToast("Senha incorreta!");
         }
-    });
+    };
+
+    btnAdminAccess.addEventListener('click', openAdminArea);
+    btnControle.addEventListener('click', openAdminArea);
 
     btnsBack.forEach(btn => {
         btn.addEventListener('click', () => {

@@ -14,29 +14,47 @@ let currentSpecialMassId = null;
 // Lógica de Datas do Final de Semana
 function getWeekendDates() {
     const now = new Date();
-    const dayOfWeek = now.getDay();
-    const satOffset = (6 - dayOfWeek + 7) % 7;
-    const satDate = new Date(now);
-    satDate.setDate(now.getDate() + satOffset);
+    const dayOfWeek = now.getDay(); // 0=Dom, 1=Seg, ..., 6=Sab
+    
+    let satDate = new Date(now);
+    if (dayOfWeek === 0) {
+        // Se hoje é domingo, o sábado foi ontem
+        satDate.setDate(now.getDate() - 1);
+    } else {
+        // Se hoje é de segunda a sábado, o próximo sábado
+        const satOffset = (6 - dayOfWeek);
+        satDate.setDate(now.getDate() + satOffset);
+    }
+    
     const sunDate = new Date(satDate);
     sunDate.setDate(satDate.getDate() + 1);
+    
     const format = (d) => `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+    const formatISO = (d) => {
+        const y = d.getFullYear();
+        const m = (d.getMonth() + 1).toString().padStart(2, '0');
+        const day = d.getDate().toString().padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    };
+
     return {
         sab: format(satDate),
         dom: format(sunDate),
+        sabISO: formatISO(satDate),
+        domISO: formatISO(sunDate),
         weekendRange: `${format(satDate)} e ${format(sunDate)}`
     };
 }
 
 const dates = getWeekendDates();
 const massSchedules = [
-    { id: 'sab-17', dia: 'Sábado', data: dates.sab, hora: '17:00' },
-    { id: 'dom-09', dia: 'Domingo', data: dates.dom, hora: '09:00' },
-    { id: 'dom-11', dia: 'Domingo', data: dates.dom, hora: '11:00' },
-    { id: 'dom-18', dia: 'Domingo', data: dates.dom, hora: '18:30' },
+    { id: `sab-17-${dates.sabISO}`, dia: 'Sábado', data: dates.sab, hora: '17:00' },
+    { id: `dom-09-${dates.domISO}`, dia: 'Domingo', data: dates.dom, hora: '09:00' },
+    { id: `dom-11-${dates.domISO}`, dia: 'Domingo', data: dates.dom, hora: '11:00' },
+    { id: `dom-18-${dates.domISO}`, dia: 'Domingo', data: dates.dom, hora: '18:30' },
 ];
 
-let selectedMassId = 'sab-17';
+let selectedMassId = massSchedules[0].id;
 
 // Elementos do DOM
 const viewSelection = document.getElementById('view-selection');
@@ -73,6 +91,7 @@ const controlRelatorio = document.getElementById('control-relatorio');
 const weekendLabel = document.getElementById('current-weekend-label');
 const roleInputs = document.querySelectorAll('input[name="user-role"]');
 const btnExportPdf = document.getElementById('btn-export-pdf');
+const btnExportExcel = document.getElementById('btn-export-excel');
 
 // Form Missa Especial
 const formSpecialMass = document.getElementById('form-special-mass');
@@ -89,6 +108,7 @@ async function init() {
         initChart();
         
         btnExportPdf.addEventListener('click', exportToPDF);
+        if (btnExportExcel) btnExportExcel.addEventListener('click', exportToExcel);
     } catch (error) {
         console.error("Erro na inicialização:", error);
     }
@@ -381,7 +401,7 @@ function renderMassTabs() {
     massTabs.innerHTML = '';
     
     // Adiciona abas do final de semana
-    massSchedules.forEach(m => {
+        massSchedules.forEach(m => {
         const tab = document.createElement('div');
         tab.className = `tab ${selectedMassId === m.id ? 'active' : ''}`;
         tab.innerHTML = `<div>${m.dia}</div><small>${m.data} - ${m.hora}</small>`;
@@ -509,7 +529,7 @@ function renderPublicScale() {
     let headers = ['Nome'];
 
     if (currentMode === 'weekend') {
-        massIds = ['sab-17', 'dom-09', 'dom-11', 'dom-18'];
+        massIds = massSchedules.map(m => m.id);
         headers.push(`Sáb ${dates.sab}<br>17:00`, `Dom ${dates.dom}<br>09:00`, `Dom ${dates.dom}<br>11:00`, `Dom ${dates.dom}<br>18:30`);
     } else {
         if (!currentSpecialMassId) {
@@ -593,7 +613,18 @@ function updateGeneralList() {
                     return `${m.description} (${d}/${mon})`;
                 } else {
                     const m = massSchedules.find(ms => ms.id === e.mass_id);
-                    return m ? `${m.dia} ${m.data}` : '';
+                    if (m) {
+                        return `${m.dia} ${m.data}`;
+                    } else {
+                        // Tenta extrair data de um ID histórico (ex: sab-17-2026-05-16)
+                        const parts = e.mass_id.split('-');
+                        if (parts.length >= 5) {
+                            const diaSemana = parts[0] === 'sab' ? 'Sáb' : 'Dom';
+                            const dataFormatada = `${parts[4]}/${parts[3]}`;
+                            return `${diaSemana} ${dataFormatada}`;
+                        }
+                        return e.mass_id;
+                    }
                 }
             }).filter(d => d !== '').join(', ');
 
@@ -793,6 +824,73 @@ function exportToPDF() {
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     html2pdf().set(opt).from(element).save();
+}
+
+function exportToExcel() {
+    try {
+        const sortedServers = [...servers].sort((a, b) => a.nome.localeCompare(b.nome));
+        
+        // Prepara os dados para o Excel
+        const data = sortedServers.map(server => {
+            const serverEntries = attendanceData.filter(a => a.server_id === server.id);
+            
+            let daysText = 'Não se inscreveu';
+            if (serverEntries.length > 0) {
+                daysText = serverEntries.map(e => {
+                    if (e.mass_id.startsWith('special-')) {
+                        const id = e.mass_id.replace('special-', '');
+                        const m = specialMasses.find(sm => sm.id == id);
+                        if (!m) return '';
+                        const [y, mon, d] = m.mass_date.split('-');
+                        return `${m.description} (${d}/${mon})`;
+                    } else {
+                        const m = massSchedules.find(ms => ms.id === e.mass_id);
+                        if (m) {
+                            return `${m.dia} ${m.data}`;
+                        } else {
+                            const parts = e.mass_id.split('-');
+                            if (parts.length >= 5) {
+                                const diaSemana = parts[0] === 'sab' ? 'Sáb' : 'Dom';
+                                const dataFormatada = `${parts[4]}/${parts[3]}`;
+                                return `${diaSemana} ${dataFormatada}`;
+                            }
+                            return e.mass_id;
+                        }
+                    }
+                }).filter(d => d !== '').join(', ');
+            }
+
+            return {
+                'Nome': server.nome,
+                'Cargo': server.cargo,
+                'Datas/Missas': daysText,
+                'Status': serverEntries.some(e => e.status === 'present') ? 'Confirmado' : 
+                          serverEntries.some(e => e.status === 'absent') ? 'Ausente' : 
+                          serverEntries.length > 0 ? 'Aguardando' : 'Inativo'
+            };
+        });
+
+        // Cria a planilha
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Escala");
+
+        // Ajusta largura das colunas
+        const wscols = [
+            {wch: 30}, // Nome
+            {wch: 15}, // Cargo
+            {wch: 50}, // Datas/Missas
+            {wch: 15}  // Status
+        ];
+        worksheet['!cols'] = wscols;
+
+        // Download
+        XLSX.writeFile(workbook, `Escala_Sagrada_Familia_${new Date().toISOString().split('T')[0]}.xlsx`);
+        showToast("Excel gerado com sucesso! 📊");
+    } catch (error) {
+        console.error("Erro ao exportar Excel:", error);
+        showToast("Erro ao gerar Excel.");
+    }
 }
 
 function showToast(msg) {

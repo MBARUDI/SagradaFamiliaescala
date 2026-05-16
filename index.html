@@ -167,8 +167,9 @@
 
             <!-- Sub-aba: Relatório Geral -->
             <div id="control-relatorio" class="control-section hidden">
-                <div class="action-bar" style="margin-bottom: 20px;">
-                    <button id="btn-export-pdf" class="btn-export">📄 Exportar Relatório PDF</button>
+                <div class="action-bar" style="margin-bottom: 20px; gap: 10px;">
+                    <button id="btn-export-pdf" class="btn-export">📄 Relatório PDF</button>
+                    <button id="btn-export-excel" class="btn-export" style="background: #27ae60;">📊 Relatório Excel</button>
                 </div>
 
                 <div class="stats-container">
@@ -193,6 +194,7 @@
     <!-- Bibliotecas Externas -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
     <!-- Cliente do Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

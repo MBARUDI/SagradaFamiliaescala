@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coordenação Sagrada Família</title>
-    <link rel="stylesheet" href="style.css?v=1.1">
+    <link rel="stylesheet" href="style.css?v=1.2">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -32,8 +32,8 @@
                     <button id="btn-select-weekend" class="selection-card">
                         <div class="card-icon">⛪</div>
                         <div class="card-content">
-                            <h3>Missa de Final de Semana</h3>
-                            <p>Escala convencional de Sábado e Domingo</p>
+                            <h3>Escala Mensal</h3>
+                            <p>Escala completa de Sábados e Domingos do mês</p>
                         </div>
                     </button>
                     <button id="btn-select-special" class="selection-card">
@@ -47,15 +47,24 @@
             </div>
         </section>
 
-        <!-- Inscrição (Final de Semana ou Especial) -->
+        <!-- Inscrição (Mensal ou Especial) -->
         <section id="view-inscricao" class="view hidden">
             <div class="view-header">
                 <button class="btn-back">← Voltar</button>
-                <h2 id="inscricao-title">Escala do Final de Semana</h2>
+                <h2 id="inscricao-title">Escala Mensal</h2>
             </div>
 
-            <div class="card">
-                <p class="subtitle" id="inscricao-subtitle">Selecione seu nome e as missas que você pode servir.</p>
+            <!-- Navegador de Mês -->
+            <div class="month-navigator-container" id="inscricao-month-nav">
+                <div class="month-navigator">
+                    <button type="button" id="btn-prev-month" class="btn-month-nav" title="Mês anterior">◀</button>
+                    <span id="current-month-display" class="month-display">Carregando mês...</span>
+                    <button type="button" id="btn-next-month" class="btn-month-nav" title="Próximo mês">▶</button>
+                </div>
+            </div>
+
+            <div class="card" id="card-escala">
+                <p class="subtitle" id="inscricao-subtitle">Selecione seu nome e marque os dias que você pode servir neste mês. Você pode alterar seus ticks ou desmarcar dias a qualquer momento.</p>
                 
                 <form id="form-escala">
                     <div id="special-mass-picker-container" class="form-group hidden">
@@ -83,19 +92,49 @@
                         </select>
                     </div>
 
+                    <!-- Banner de Status do Servidor (Mostra marcações e explica como alterar) -->
+                    <div id="server-tick-banner" class="tick-banner hidden">
+                        <!-- Carregado via JS -->
+                    </div>
+
                     <div class="mass-selection">
-                        <label id="label-quais-missas">Quais missas você irá?</label>
-                        <div id="mass-options" class="options-grid">
-                            <!-- Opções de missa -->
+                        <div class="mass-selection-header">
+                            <label id="label-quais-missas">Quais missas você irá?</label>
+                            <!-- Ações Rápidas de Marcação -->
+                            <div id="mass-quick-actions" class="quick-actions-bar hidden">
+                                <button type="button" class="btn-quick danger" id="btn-quick-desmarcar" title="Desmarca todos os seus ticks">✕ Desmarcar Todos</button>
+                                <button type="button" class="btn-quick" id="btn-quick-sabados" title="Marca todos os sábados">✓ Todos os Sábados</button>
+                                <button type="button" class="btn-quick" id="btn-quick-dom-manha" title="Marca domingos pela manhã">✓ Dom. Manhã</button>
+                                <button type="button" class="btn-quick" id="btn-quick-dom-noite" title="Marca domingos à noite">✓ Dom. Noite</button>
+                            </div>
+                        </div>
+
+                        <div id="mass-options" class="monthly-options-container">
+                            <!-- Opções de missa agrupadas por final de semana -->
                         </div>
                     </div>
 
-                    <button type="submit" class="btn-primary">Confirmar Disponibilidade</button>
+                    <button type="submit" id="btn-submit-escala" class="btn-primary">Salvar Alterações na Escala</button>
                 </form>
             </div>
 
             <div class="public-scale" style="margin-top: 30px;">
-                <h3>Agenda Atual</h3>
+                <div class="public-scale-header-wrap">
+                    <div class="public-scale-title-row">
+                        <h3 id="public-scale-title">Agenda Geral do Mês</h3>
+                        <span id="public-scale-month-badge" class="badge-month"></span>
+                    </div>
+                    <p class="public-scale-hint">💡 Toque no botão <b>Alterar</b> ou no seu nome para carregar seus ticks e ajustar sua escala.</p>
+                    <div id="scale-filter-container" class="scale-filter-container">
+                        <!-- Botões de filtro por final de semana -->
+                    </div>
+
+                    <!-- Resumo Rápido de Quantidades por Missa para Todos -->
+                    <div id="public-mass-summary" class="public-mass-summary-container">
+                        <!-- Carregado via JS -->
+                    </div>
+                </div>
+
                 <div id="public-scale-list" class="scale-table">
                     <!-- Lista pública -->
                 </div>
@@ -121,12 +160,25 @@
                 <div class="dashboard-header" style="margin-top: 20px;">
                     <h3>Confirmar Presenças</h3>
                     <div class="date-selector">
-                        <span id="current-weekend-label">Final de Semana: --/--</span>
+                        <div class="month-navigator month-nav-compact">
+                            <button type="button" id="btn-admin-prev-month" class="btn-month-nav" title="Mês anterior">◀</button>
+                            <span id="current-weekend-label">Mês: --/--</span>
+                            <button type="button" id="btn-admin-next-month" class="btn-month-nav" title="Próximo mês">▶</button>
+                        </div>
                     </div>
+                </div>
+
+                <div id="admin-mass-filter" class="scale-filter-container" style="margin-bottom: 12px;">
+                    <!-- Filtro de fins de semana na chamada -->
                 </div>
 
                 <div id="mass-tabs" class="tabs">
                     <!-- Abas de missa (Sáb/Dom ou Especiais) -->
+                </div>
+
+                <!-- KPI de Quantidades da Missa Atual para o Coordenador -->
+                <div id="admin-mass-kpi" class="mass-attendance-kpi">
+                    <!-- Carregado via JS -->
                 </div>
 
                 <div id="attendance-list" class="attendance-card">
@@ -172,6 +224,14 @@
                     <button id="btn-export-excel" class="btn-export" style="background: #27ae60;">📊 Relatório Excel</button>
                 </div>
 
+                <!-- Quadro de Quantidade de Servidores por Missa -->
+                <div class="stats-container">
+                    <h3>Quadro de Servidores por Missa</h3>
+                    <div id="admin-masses-report" class="masses-report-grid">
+                        <!-- Carregado via JS -->
+                    </div>
+                </div>
+
                 <div class="stats-container">
                     <h3>Resumo Geral</h3>
                     <div class="chart-wrapper">
@@ -189,6 +249,20 @@
         </section>
     </main>
 
+    <!-- Modal de Senha do Coordenador -->
+    <div id="admin-password-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <h3>🔒 Acesso do Coordenador</h3>
+            <p style="color: var(--text-light); margin-bottom: 16px;">Digite a senha para acessar a área de controle.</p>
+            <input type="password" id="admin-pass-input" class="modal-input" placeholder="Senha..." autocomplete="off">
+            <p id="admin-pass-error" class="modal-error hidden">Senha incorreta. Tente novamente.</p>
+            <div class="modal-actions">
+                <button id="admin-pass-cancel" class="modal-btn cancel">Cancelar</button>
+                <button id="admin-pass-confirm" class="modal-btn confirm">Entrar</button>
+            </div>
+        </div>
+    </div>
+
     <div id="toast" class="toast hidden">Mensagem aqui</div>
 
     <!-- Bibliotecas Externas -->
@@ -198,6 +272,6 @@
     
     <!-- Cliente do Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="app.js?v=1.4"></script>
+    <script src="app.js?v=1.6"></script>
 </body>
 </html>

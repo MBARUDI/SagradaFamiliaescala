@@ -46,10 +46,11 @@ INSERT INTO public.servers (id, nome, cargo) VALUES
 (18, 'Pedro Deveza', 'Acólito'),
 (19, 'Pedro L', 'Acólito'),
 (20, 'Rafael Kolbe', 'Coroinha'),
-(21, 'Rafael Ross', 'Acólito');
+(21, 'Rafael Ross', 'Acólito'),
+(22, 'Davi', 'Coroinha');
 
 -- Reinicia a sequência do ID para os próximos inseridos automaticamente não darem erro
-ALTER SEQUENCE public.servers_id_seq RESTART WITH 22;
+ALTER SEQUENCE public.servers_id_seq RESTART WITH 23;
 
 -- Habilitar Políticas de Segurança de Nível de Linha (RLS)
 ALTER TABLE public.servers ENABLE ROW LEVEL SECURITY;

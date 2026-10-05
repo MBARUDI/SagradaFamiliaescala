@@ -1,21 +1,22 @@
 # ⛪ Paróquia Sagrada Família - Escala de Coroinhas e Acólitos
 
-Sistema de coordenação e auto-escala desenvolvido para a **Paróquia Sagrada Família**, sob a coordenação de **Luiggi Barudi**. Este aplicativo permite que coroinhas e acólitos se programem para as missas do final de semana de forma ágil e centralizada.
+Sistema de coordenação e auto-escala desenvolvido para a **Paróquia Sagrada Família**, sob a coordenação de **Luiggi Barudi**. Este aplicativo permite que coroinhas e acólitos se programem para as missas do mês completo de forma ágil, visual e centralizada.
 
 ---
 
 ## ✨ Funcionalidades
 
 ### 👦 Interface do Servidor (Coroinha/Acólito)
-- **Seleção de Cargo:** Filtra automaticamente a lista de nomes entre Coroinhas e Acólitos.
-- **Auto-Escala:** O servidor seleciona todas as missas que pode comparecer no final de semana atual.
-- **Datas Inteligentes:** O sistema identifica automaticamente o próximo sábado e domingo, exibindo o dia e mês específicos em cada opção.
+- **Seleção de Cargo e Nome:** Filtra automaticamente a lista de nomes entre Coroinhas (incluindo o coroinha Davi) e Acólitos.
+- **Escala Mensal Completa:** Visualização de todos os fins de semana do mês com navegação entre meses (Mês Anterior / Próximo Mês).
+- **Alteração e Desmarcação de Ticks:** Ao selecionar o nome, as marcações já salvas são carregadas na tela com o tick (✓). O usuário pode marcar novos dias ou desmarcar (desfazer o tick) qualquer dia que não puder mais comparecer.
+- **Ações Rápidas de Marcação:** Botões para desmarcar todos os ticks ou marcar todos os sábados/domingos com um único clique.
+- **Agenda Geral Interativa:** Tabela pública com filtros por final de semana, coluna fixa do nome e botão rápido para carregar e editar os ticks.
 
 ### 📋 Interface do Coordenador (Luiggi)
-- **Dashboard Consolidado:** Visão clara de todos os inscritos por horário de missa.
-- **Abas por Horário:** Navegação rápida entre as missas de Sábado (17h) e Domingo (09h, 11h, 18h).
-- **Check-in de Presença:** Botão de confirmação em tempo real para marcar quem efetivamente serviu na missa.
-- **Identificação Visual:** Badges coloridos que diferenciam Coroinhas (Azul) de Acólitos (Dourado) na lista.
+- **Dashboard Consolidado Mensal:** Visão clara de todos os inscritos organizados por missa e fim de semana.
+- **Chamada por Horário:** Navegação entre as missas de Sábado (17h) e Domingo (09h, 11h, 18h30) com confirmação de presença em tempo real.
+- **Relatórios em PDF e Excel:** Exportação completa da escala mensal.
 
 ---
 

@@ -763,45 +763,65 @@ select:focus {
     padding: 20px;
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-    max-width: 100%; /* Garante que não ultrapasse o celular */
-    overflow: hidden; /* Contém a tabela que rola lá dentro */
+    max-width: 100%;
+    overflow: visible; /* Permite que sticky funcione nos filhos */
 }
 
 @media (max-width: 768px) {
     .public-scale {
         padding: 10px;
+        overflow: visible;
     }
 }
 
 .scale-table {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 0;
     margin-top: 15px;
-    overflow-x: auto; /* Scroll horizontal no mobile */
+    overflow-x: auto;
     padding-bottom: 10px;
-}
-
-.scale-table::-webkit-scrollbar {
-    height: 6px;
-}
-
-.scale-table::-webkit-scrollbar-thumb {
-    background: #ccc;
     border-radius: 10px;
 }
 
+/* No mobile: scroll em ambos os eixos dentro do mesmo container,
+   permitindo que o cabeçalho de datas fique fixo no topo (sticky) */
+@media (max-width: 768px) {
+    .scale-table {
+        max-height: 72vh;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+    }
+}
+
+.scale-table::-webkit-scrollbar {
+    height: 5px;
+    width: 5px;
+}
+
+.scale-table::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+/* Cabeçalho da tabela de escala - fica fixo no TOPO ao rolar para baixo */
 .scale-header {
     display: grid;
     width: 100%;
     padding: 0;
     background: var(--primary);
     color: white;
-    border-radius: 8px;
+    border-radius: 8px 8px 0 0;
     font-weight: bold;
     font-size: 0.75rem;
-    margin-bottom: 5px;
+    margin-bottom: 0;
     overflow: visible;
+    /* Sticky no eixo vertical: cabeçalho fica fixo enquanto scroll desce */
+    position: sticky;
+    top: 0;
+    z-index: 20;
 }
 
 .scale-header span {
@@ -814,16 +834,16 @@ select:focus {
     box-sizing: border-box;
 }
 
+/* Coluna do nome no cabeçalho fica fixo no EIXO HORIZONTAL também */
 .scale-header span:first-child {
     position: sticky;
     left: 0;
-    z-index: 15;
+    z-index: 25; /* Maior que o header para ficar em cima de tudo */
     background: var(--primary) !important;
-    box-shadow: 3px 0 8px rgba(0,0,0,0.15);
+    box-shadow: 3px 0 8px rgba(0,0,0,0.2);
     justify-content: flex-start;
     padding-left: 14px;
     border-top-left-radius: 8px;
-    border-bottom-left-radius: 8px;
 }
 
 .scale-row {
@@ -832,11 +852,20 @@ select:focus {
     width: 100%;
     align-items: stretch;
     background: white;
-    border-radius: 8px;
-    border: 1px solid #eee;
-    margin-bottom: 4px;
+    border-bottom: 1px solid #e8ecf0;
     padding: 0;
 }
+
+.scale-row:last-child {
+    border-bottom: none;
+    border-radius: 0 0 10px 10px;
+}
+
+/* Linhas ímpares levemente sombreadas para facilitar leitura */
+.scale-row:nth-child(odd) {
+    background: #fafbff;
+}
+
 
 .scale-col {
     display: flex;
@@ -872,13 +901,13 @@ select:focus {
     padding: 8px 12px;
     font-weight: bold;
     color: var(--primary);
-    background: #ffffff !important;
+    background: inherit; /* Herda o fundo da linha (zebra striping) */
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 6px;
-    border-right: 2px solid rgba(26, 35, 126, 0.2);
-    box-shadow: 3px 0 8px rgba(0,0,0,0.08);
+    border-right: 2px solid rgba(26, 35, 126, 0.15);
+    box-shadow: 4px 0 10px rgba(0,0,0,0.07);
     box-sizing: border-box;
     cursor: pointer;
     transition: background 0.2s;
@@ -1106,14 +1135,13 @@ select:focus {
     box-shadow: 0 2px 6px rgba(26, 35, 126, 0.25);
 }
 
-/* Coluna Fixa / Sticky do Nome do Servidor */
-/* Coluna Fixa / Sticky do Nome do Servidor */
+/* Coluna Fixa / Sticky do Nome do Servidor (reforço de regras) */
 .scale-name {
     position: sticky;
     left: 0;
     z-index: 10;
-    background: #ffffff !important;
-    box-shadow: 3px 0 8px rgba(0, 0, 0, 0.08);
+    background: inherit;
+    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.07);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1124,7 +1152,7 @@ select:focus {
 }
 
 .scale-row:hover .scale-name {
-    background: #f8fafc !important;
+    filter: brightness(0.97);
 }
 
 .scale-name-text {

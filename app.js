@@ -955,10 +955,11 @@ function renderPublicScale() {
     renderPublicMassSummary(massList);
 
     const header = document.createElement('div');
-    header.className = 'scale-header';
-    const colWidth = Math.max(75, Math.floor(700 / massList.length));
-    header.style.gridTemplateColumns = `190px repeat(${massList.length}, minmax(${colWidth}px, 1fr))`;
-    header.style.minWidth = `${190 + (massList.length * colWidth)}px`;
+    const isMobile = window.innerWidth <= 768;
+    const nameColWidth = isMobile ? 150 : 190;
+    const colWidth = Math.max(isMobile ? 70 : 75, Math.floor(700 / massList.length));
+    header.style.gridTemplateColumns = `${nameColWidth}px repeat(${massList.length}, minmax(${colWidth}px, 1fr))`;
+    header.style.minWidth = `${nameColWidth + (massList.length * colWidth)}px`;
 
     const nameHeader = document.createElement('span');
     nameHeader.innerHTML = '<strong>Servidor</strong>';
@@ -1036,12 +1037,10 @@ function renderPublicScale() {
         
         nameCol.innerHTML = `
             <div class="scale-name-text">
-                <div>${server.nome}</div>
-                <div style="display:flex; gap:4px; align-items:center; margin-top:2px;">
-                    <span class="badge ${roleClass}" style="font-size:0.58rem; padding:1px 5px;">${roleShort}</span>
-                    <span class="badge-total-ticks ${totalTicksMonth > 0 ? 'has-ticks' : ''}" style="font-size:0.58rem; padding:1px 5px;">${totalTicksMonth} missa${totalTicksMonth !== 1 ? 's' : ''}</span>
-                    <span class="badge ${roleClass}" style="font-size:0.5rem; padding:1px 4px; background:#e0f7fa;">A: ${roleCounts.acolyteCount}</span>
-                    <span class="badge ${roleClass}" style="font-size:0.5rem; padding:1px 4px; background:#fff3e0;">C: ${roleCounts.coroinhaCount}</span>
+                <div class="scale-server-title">${server.nome}</div>
+                <div class="scale-badges-wrap">
+                    <span class="badge ${roleClass}" style="font-size:0.6rem; padding:1px 5px;">${roleShort}</span>
+                    <span class="badge-total-ticks ${totalTicksMonth > 0 ? 'has-ticks' : ''}" style="font-size:0.6rem; padding:1px 5px;">${totalTicksMonth} missa${totalTicksMonth !== 1 ? 's' : ''}</span>
                 </div>
             </div>
             <div class="scale-name-actions">

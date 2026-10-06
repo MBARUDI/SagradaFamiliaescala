@@ -793,7 +793,6 @@ select:focus {
 
 .scale-header {
     display: grid;
-    grid-template-columns: 160px 1fr 1fr 1fr 1fr;
     width: 100%;
     padding: 0;
     background: var(--primary);
@@ -802,34 +801,29 @@ select:focus {
     font-weight: bold;
     font-size: 0.75rem;
     margin-bottom: 5px;
-    overflow: hidden;
-}
-
-@media (max-width: 768px) {
-    .scale-header, .scale-row {
-        grid-template-columns: 85px 1fr 1fr 1fr 1fr; /* Compacto ao extremo */
-        font-size: 0.65rem; /* Fonte pequena para caber sem rolar */
-    }
-    .scale-header span:first-child, .scale-name {
-        width: 85px !important;
-        padding-left: 8px !important;
-    }
+    overflow: visible;
 }
 
 .scale-header span {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 12px 5px;
+    padding: 12px 6px;
     text-align: center;
     border-right: 1px solid rgba(255,255,255,0.2);
+    box-sizing: border-box;
 }
 
 .scale-header span:first-child {
-    width: 160px;
-    background: rgba(0,0,0,0.1);
+    position: sticky;
+    left: 0;
+    z-index: 15;
+    background: var(--primary) !important;
+    box-shadow: 3px 0 8px rgba(0,0,0,0.15);
     justify-content: flex-start;
-    padding-left: 20px;
+    padding-left: 14px;
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
 }
 
 .scale-row {
@@ -872,18 +866,22 @@ select:focus {
 .status-none { color: #bbb; font-weight: normal; font-size: 0.9rem; } /* Cinza médio - Não Inscrito */
 
 .scale-name {
-    width: 160px;
-    padding: 10px 20px;
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    padding: 8px 12px;
     font-weight: bold;
     color: var(--primary);
-    background: #f0f2f5;
+    background: #ffffff !important;
     display: flex;
     align-items: center;
-    border-right: 2px solid var(--primary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    justify-content: space-between;
+    gap: 6px;
+    border-right: 2px solid rgba(26, 35, 126, 0.2);
+    box-shadow: 3px 0 8px rgba(0,0,0,0.08);
     box-sizing: border-box;
+    cursor: pointer;
+    transition: background 0.2s;
 }
 
 .scale-col {
@@ -1109,31 +1107,66 @@ select:focus {
 }
 
 /* Coluna Fixa / Sticky do Nome do Servidor */
+/* Coluna Fixa / Sticky do Nome do Servidor */
 .scale-name {
     position: sticky;
     left: 0;
-    z-index: 2;
-    background: #f8fafc !important;
-    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.04);
+    z-index: 10;
+    background: #ffffff !important;
+    box-shadow: 3px 0 8px rgba(0, 0, 0, 0.08);
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 6px;
     cursor: pointer;
     transition: background 0.2s;
+    box-sizing: border-box;
 }
 
 .scale-row:hover .scale-name {
-    background: #f1f5f9 !important;
+    background: #f8fafc !important;
 }
 
 .scale-name-text {
     font-weight: 700;
     color: var(--primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     flex: 1;
+    min-width: 0;
+}
+
+.scale-server-title {
+    font-size: 0.88rem;
+    line-height: 1.25;
+    white-space: normal;
+    word-break: break-word;
+    margin-bottom: 2px;
+}
+
+.scale-badges-wrap {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .scale-name {
+        padding: 6px 8px !important;
+        box-shadow: 4px 0 10px rgba(0, 0, 0, 0.12) !important;
+    }
+
+    .scale-server-title {
+        font-size: 0.8rem;
+        line-height: 1.2;
+    }
+
+    .scale-name-actions .btn-row-edit {
+        display: none; /* No mobile o clique direto no nome já edita, liberando 100% do espaço para ler o nome */
+    }
+
+    .scale-badges-wrap {
+        gap: 3px;
+    }
 }
 
 .scale-name-actions {
@@ -1769,3 +1802,34 @@ select:focus {
     from { opacity: 0; }
     to { opacity: 1; }
 }
+
+/* Indicador de rolagem horizontal para dispositivos móveis */
+.mobile-scroll-indicator {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: #eef2ff;
+    color: var(--primary);
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 7px 12px;
+    border-radius: 8px;
+    margin: 8px 0;
+    border: 1px solid rgba(26, 35, 126, 0.15);
+    animation: fadeIn 0.3s ease;
+}
+
+@media (max-width: 768px) {
+    .mobile-scroll-indicator {
+        display: flex;
+    }
+
+    /* Garante que o container da escala role com suavidade no celular */
+    .scale-table {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+    }
+}
+

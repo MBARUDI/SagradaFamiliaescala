@@ -4,18 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coordenação Sagrada Família</title>
-    <link rel="stylesheet" href="style.css?v=1.4">
+    <link rel="stylesheet" href="style.css?v=3.0">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <header>
+    <header id="site-header">
         <div class="banner-container">
             <img src="church_banner.jpg" alt="Paróquia Sagrada Família" class="modern-banner">
             <div class="banner-overlay"></div>
-        </div>
-        <div class="logo-container">
-            <h1>Paróquia Sagrada Família</h1>
-            <p class="subtitle">Coordenação de Coroinhas e Acólitos</p>
+            <div class="logo-container">
+                <h1>Paróquia Sagrada Família</h1>
+                <p class="subtitle">Coordenação de Coroinhas e Acólitos</p>
+            </div>
         </div>
         <nav id="main-nav">
             <button id="btn-inscricao" class="active">Inscrição</button>
@@ -49,17 +49,16 @@
 
         <!-- Inscrição (Mensal ou Especial) -->
         <section id="view-inscricao" class="view hidden">
-            <div class="view-header">
+            <div class="view-header inscricao-top-bar">
                 <button class="btn-back">← Voltar</button>
                 <h2 id="inscricao-title">Escala Mensal</h2>
-            </div>
-
-            <!-- Navegador de Mês -->
-            <div class="month-navigator-container" id="inscricao-month-nav">
-                <div class="month-navigator">
-                    <button type="button" id="btn-prev-month" class="btn-month-nav" title="Mês anterior">◀</button>
-                    <span id="current-month-display" class="month-display">Carregando mês...</span>
-                    <button type="button" id="btn-next-month" class="btn-month-nav" title="Próximo mês">▶</button>
+                <!-- Navegador de Mês -->
+                <div class="month-navigator-container" id="inscricao-month-nav">
+                    <div class="month-navigator month-nav-compact">
+                        <button type="button" id="btn-prev-month" class="btn-month-nav" title="Mês anterior">◀</button>
+                        <span id="current-month-display" class="month-display">Carregando mês...</span>
+                        <button type="button" id="btn-next-month" class="btn-month-nav" title="Próximo mês">▶</button>
+                    </div>
                 </div>
             </div>
 
@@ -74,22 +73,24 @@
                         </select>
                     </div>
 
-                    <div class="form-group">
-                        <label>Você é:</label>
-                        <div class="role-selector">
-                            <input type="radio" id="role-coroinha" name="user-role" value="Coroinha" checked>
-                            <label for="role-coroinha" class="role-btn">Coroinha</label>
-                            
-                            <input type="radio" id="role-acolito" name="user-role" value="Acólito">
-                            <label for="role-acolito" class="role-btn">Acólito</label>
+                    <div class="form-user-row">
+                        <div class="form-group form-group-role">
+                            <label>Você é:</label>
+                            <div class="role-selector">
+                                <input type="radio" id="role-coroinha" name="user-role" value="Coroinha" checked>
+                                <label for="role-coroinha" class="role-btn">Coroinha</label>
+                                
+                                <input type="radio" id="role-acolito" name="user-role" value="Acólito">
+                                <label for="role-acolito" class="role-btn">Acólito</label>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="form-group">
-                        <label for="select-name">Seu Nome</label>
-                        <select id="select-name" required>
-                            <option value="" disabled selected>Escolha seu nome...</option>
-                        </select>
+                        <div class="form-group form-group-name">
+                            <label for="select-name">Seu Nome</label>
+                            <select id="select-name" required>
+                                <option value="" disabled selected>Escolha seu nome...</option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- Banner de Status do Servidor (Mostra marcações e explica como alterar) -->
@@ -103,7 +104,7 @@
                             <!-- Ações Rápidas de Marcação -->
                             <div id="mass-quick-actions" class="quick-actions-bar hidden">
                                 <button type="button" class="btn-quick danger" id="btn-quick-desmarcar" title="Desmarca todos os seus ticks">✕ Desmarcar Todos</button>
-                                <button type="button" class="btn-quick" id="btn-quick-sabados" title="Marca todos os sábados">✓ Todos os Sábados</button>
+                                <button type="button" class="btn-quick" id="btn-quick-sabados" title="Marca todos os sábados">✓ Sábados</button>
                                 <button type="button" class="btn-quick" id="btn-quick-dom-manha" title="Marca domingos pela manhã">✓ Dom. Manhã</button>
                                 <button type="button" class="btn-quick" id="btn-quick-dom-noite" title="Marca domingos à noite">✓ Dom. Noite</button>
                             </div>
@@ -146,22 +147,115 @@
         <section id="view-luiggi" class="view hidden">
             <div class="view-header">
                 <button class="btn-back">← Voltar</button>
-                <h2>Área de Controle</h2>
+                <h2>Área do Coordenador</h2>
             </div>
             
             <div class="dashboard-header">
                 <nav class="sub-tabs">
-                    <button id="btn-sub-chamada" class="sub-tab-btn active">Chamada</button>
-                    <button id="btn-sub-especial" class="sub-tab-btn">Nova Missa Especial</button>
-                    <button id="btn-sub-relatorio" class="sub-tab-btn">Relatório Geral</button>
+                    <button id="btn-sub-quem-vai" class="sub-tab-btn active">👥 Quem vai Servir</button>
+                    <button id="btn-sub-chamada" class="sub-tab-btn">📋 Fazer Chamada</button>
+                    <button id="btn-sub-servidores" class="sub-tab-btn">➕ Cadastrar Servidores</button>
+                    <button id="btn-sub-especial" class="sub-tab-btn">🌟 Missa Especial</button>
+                    <button id="btn-sub-relatorio" class="sub-tab-btn">📊 Relatório Geral</button>
                 </nav>
             </div>
 
-            <!-- Sub-aba: Chamada (Presenças por Missa) -->
-            <div id="control-chamada" class="control-section">
+            <!-- Sub-aba 1: Quem vai Servir (Visualização Rica e Intuitiva) -->
+            <div id="control-quem-vai" class="control-section">
+                <div class="coordinator-panel-header">
+                    <div class="panel-title-wrap">
+                        <h3>⛪ Escala Visual das Missas</h3>
+                        <p class="panel-subtitle">Acompanhe com facilidade quais acólitos e coroinhas marcaram presença em cada missa.</p>
+                    </div>
+                    <div class="month-navigator month-nav-compact" id="admin-quem-vai-month-nav">
+                        <button type="button" id="btn-qv-prev-month" class="btn-month-nav" title="Mês anterior">◀</button>
+                        <span id="qv-month-display" class="month-display" style="min-width: 170px; font-size: 0.95rem;">Mês: --/--</span>
+                        <button type="button" id="btn-qv-next-month" class="btn-month-nav" title="Próximo mês">▶</button>
+                    </div>
+                </div>
+
+                <!-- KPIs Rápidos do Mês -->
+                <div class="coordinator-kpi-grid">
+                    <div class="coord-kpi-card total-servers">
+                        <div class="kpi-icon-wrap">👥</div>
+                        <div class="kpi-content">
+                            <span class="coord-kpi-value" id="kpi-qv-total-active">0</span>
+                            <span class="coord-kpi-label">Servidores Escalados</span>
+                            <small class="coord-kpi-hint" id="kpi-qv-total-registered">de 0 cadastrados</small>
+                        </div>
+                    </div>
+                    <div class="coord-kpi-card acolitos">
+                        <div class="kpi-icon-wrap">⛪</div>
+                        <div class="kpi-content">
+                            <span class="coord-kpi-value" id="kpi-qv-acolitos">0</span>
+                            <span class="coord-kpi-label">Vagas Acólitos</span>
+                            <small class="coord-kpi-hint" id="kpi-qv-acolitos-active">0 acólitos ativos</small>
+                        </div>
+                    </div>
+                    <div class="coord-kpi-card coroinhas">
+                        <div class="kpi-icon-wrap">✝️</div>
+                        <div class="kpi-content">
+                            <span class="coord-kpi-value" id="kpi-qv-coroinhas">0</span>
+                            <span class="coord-kpi-label">Vagas Coroinhas</span>
+                            <small class="coord-kpi-hint" id="kpi-qv-coroinhas-active">0 coroinhas ativos</small>
+                        </div>
+                    </div>
+                    <div class="coord-kpi-card coverage">
+                        <div class="kpi-icon-wrap">📅</div>
+                        <div class="kpi-content">
+                            <span class="coord-kpi-value" id="kpi-qv-masses-count">0</span>
+                            <span class="coord-kpi-label">Total de Missas</span>
+                            <small class="coord-kpi-hint" id="kpi-qv-needs-attention">0 com poucos servidores</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Barra de Ferramentas / Filtros -->
+                <div class="coordinator-toolbar">
+                    <div class="toolbar-left">
+                        <div class="view-mode-toggle">
+                            <button type="button" id="btn-mode-by-mass" class="toggle-mode-btn active">📅 Por Missa</button>
+                            <button type="button" id="btn-mode-by-server" class="toggle-mode-btn">👤 Por Servidor</button>
+                        </div>
+                        <div class="search-input-wrap">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="qv-search-input" placeholder="Buscar acólito ou coroinha..." autocomplete="off">
+                            <button type="button" id="qv-search-clear" class="btn-clear-search hidden">✕</button>
+                        </div>
+                    </div>
+                    <div class="toolbar-right">
+                        <div class="role-filter-pills" id="qv-role-filters">
+                            <button type="button" class="role-pill active" data-role="all">Todos</button>
+                            <button type="button" class="role-pill" data-role="Acólito">⛪ Só Acólitos</button>
+                            <button type="button" class="role-pill" data-role="Coroinha">✝️ Só Coroinhas</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filtro de Fins de Semana -->
+                <div id="qv-weekend-filters" class="scale-filter-container" style="margin-bottom: 16px;">
+                    <!-- Preenchido via JS -->
+                </div>
+
+                <!-- Container Principal onde renderiza o modo 'Por Missa' ou 'Por Servidor' -->
+                <div id="qv-content-container">
+                    <!-- Cards de missa ou lista por servidor carregados via JS -->
+                </div>
+            </div>
+
+            <!-- Sub-aba 2: Chamada (Presenças por Missa) -->
+            <div id="control-chamada" class="control-section hidden">
                 <div class="dashboard-header" style="margin-top: 20px;">
-                    <h3>Confirmar Presenças</h3>
-                    <div class="date-selector">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <h3 style="margin: 0;">Confirmar Presenças na Missa</h3>
+                            <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: var(--text-light);">Faça a chamada dos acólitos e coroinhas presentes na missa selecionada</p>
+                        </div>
+                        <button type="button" id="btn-confirm-all-mass" class="btn-quick" style="background: #27ae60; color: white; border-color: #27ae60; padding: 8px 16px; font-size: 0.85rem;">
+                            ✓ Confirmar Todos Desta Missa
+                        </button>
+                    </div>
+                    <div class="date-selector" style="margin-top: 15px;">
                         <div class="month-navigator month-nav-compact">
                             <button type="button" id="btn-admin-prev-month" class="btn-month-nav" title="Mês anterior">◀</button>
                             <span id="current-weekend-label">Mês: --/--</span>
@@ -185,6 +279,81 @@
 
                 <div id="attendance-list" class="attendance-card">
                     <!-- Lista de presença -->
+                </div>
+            </div>
+
+            <!-- Sub-aba 3: Cadastro de Acólitos e Coroinhas -->
+            <div id="control-servidores" class="control-section hidden">
+                <div class="coordinator-panel-header">
+                    <div class="panel-title-wrap">
+                        <h3>👥 Gestão de Acólitos e Coroinhas</h3>
+                        <p class="panel-subtitle">Acrescente novos nomes para que eles possam marcar missas, e gerencie os servidores cadastrados.</p>
+                    </div>
+                </div>
+
+                <!-- Formulário de Adicionar Servidor -->
+                <div class="card add-server-card">
+                    <div class="add-server-header">
+                        <div class="add-server-icon">➕</div>
+                        <div>
+                            <h4>Acrescentar Acólito ou Coroinha</h4>
+                            <p style="margin: 0; font-size: 0.85rem; color: var(--text-light);">O novo nome aparecerá imediatamente no seletor de inscrição e na escala</p>
+                        </div>
+                    </div>
+
+                    <form id="form-add-server">
+                        <div class="form-group">
+                            <label for="new-server-name">Nome do Acólito ou Coroinha</label>
+                            <input type="text" id="new-server-name" placeholder="Ex: Gabriel Silva ou Maria Clara" required autocomplete="off">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Função / Cargo:</label>
+                            <div class="role-selector add-role-selector">
+                                <input type="radio" id="new-role-coroinha" name="new-server-role" value="Coroinha" checked>
+                                <label for="new-role-coroinha" class="role-btn role-btn-coroinha">
+                                    <span class="role-icon">✝️</span>
+                                    <span>Coroinha</span>
+                                </label>
+                                
+                                <input type="radio" id="new-role-acolito" name="new-server-role" value="Acólito">
+                                <label for="new-role-acolito" class="role-btn role-btn-acolito">
+                                    <span class="role-icon">⛪</span>
+                                    <span>Acólito</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" id="btn-submit-add-server" class="btn-primary" style="margin-top: 10px;">
+                            <span>➕ Salvar e Acrescentar Servidor</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Lista de Servidores Cadastrados -->
+                <div class="stats-container" style="margin-top: 25px;">
+                    <div class="servers-list-header">
+                        <div class="servers-list-title-wrap">
+                            <h4>Lista Geral de Servidores Cadastrados</h4>
+                            <div class="servers-count-badges">
+                                <span class="badge-server-count total" id="badge-total-servers">Total: 0</span>
+                                <span class="badge-server-count acolito" id="badge-acolitos-servers">⛪ Acólitos: 0</span>
+                                <span class="badge-server-count coroinha" id="badge-coroinhas-servers">✝️ Coroinhas: 0</span>
+                            </div>
+                        </div>
+                        <div class="servers-filter-wrap">
+                            <input type="text" id="filter-servers-list-input" placeholder="🔍 Buscar servidor na lista..." autocomplete="off">
+                            <select id="filter-servers-role-select">
+                                <option value="all">Todos os cargos</option>
+                                <option value="Acólito">Apenas Acólitos</option>
+                                <option value="Coroinha">Apenas Coroinhas</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="servers-admin-list" class="servers-admin-grid">
+                        <!-- Carregado dinamicamente via JS -->
+                    </div>
                 </div>
             </div>
 
@@ -274,6 +443,6 @@
     
     <!-- Cliente do Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="app.js?v=1.6"></script>
+    <script src="app.js?v=2.0"></script>
 </body>
 </html>

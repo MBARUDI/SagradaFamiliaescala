@@ -61,6 +61,7 @@ ALTER TABLE public.special_masses ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Permitir leitura pública em servers" ON public.servers FOR SELECT USING (true);
 CREATE POLICY "Permitir inserção pública em servers" ON public.servers FOR INSERT WITH CHECK (true);
 CREATE POLICY "Permitir atualização pública em servers" ON public.servers FOR UPDATE USING (true);
+CREATE POLICY "Permitir deleção pública em servers" ON public.servers FOR DELETE USING (true);
 
 -- Políticas para Attendance
 CREATE POLICY "Permitir leitura pública em attendance" ON public.attendance FOR SELECT USING (true);

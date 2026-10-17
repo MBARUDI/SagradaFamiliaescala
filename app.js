@@ -153,12 +153,18 @@ const publicScaleList = document.getElementById('public-scale-list');
 const toast = document.getElementById('toast');
 
 // Sub-abas Controle
+const btnSubQuemVai = document.getElementById('btn-sub-quem-vai');
 const btnSubChamada = document.getElementById('btn-sub-chamada');
+const btnSubServidores = document.getElementById('btn-sub-servidores');
 const btnSubEspecial = document.getElementById('btn-sub-especial');
 const btnSubRelatorio = document.getElementById('btn-sub-relatorio');
+
+const controlQuemVai = document.getElementById('control-quem-vai');
 const controlChamada = document.getElementById('control-chamada');
+const controlServidores = document.getElementById('control-servidores');
 const controlEspecial = document.getElementById('control-especial');
 const controlRelatorio = document.getElementById('control-relatorio');
+
 const adminMassFilterContainer = document.getElementById('admin-mass-filter');
 const massTabs = document.getElementById('mass-tabs');
 const attendanceList = document.getElementById('attendance-list');
@@ -179,6 +185,8 @@ async function init() {
         setupRoleFilter();
         setupQuickActions();
         setupSpecialMassForm();
+        setupQuemVaiServir();
+        setupServerManagement();
         initChart();
 
         if (btnExportPdf) btnExportPdf.addEventListener('click', exportToPDF);
@@ -236,6 +244,8 @@ function updateMonthState() {
     renderMassesReport();
     updateGeneralList();
     updateChart();
+    renderQuemVaiServir();
+    renderServersAdminList();
 }
 
 async function fetchData() {
@@ -279,6 +289,8 @@ async function fetchData() {
         renderMassesReport();
         updateGeneralList();
         updateChart();
+        renderQuemVaiServir();
+        renderServersAdminList();
     } catch (e) {
         console.error("Erro ao buscar dados:", e);
         showToast("Erro ao conectar ao banco de dados.");
@@ -350,8 +362,8 @@ function setupNavigation() {
                 fetchData()
                     .then(() => {
                         updateMonthState();
-                        const btnSubChamada = document.getElementById('btn-sub-chamada');
-                        if (btnSubChamada) btnSubChamada.click();
+                        const btnSubQuemVai = document.getElementById('btn-sub-quem-vai');
+                        if (btnSubQuemVai) btnSubQuemVai.click();
                     })
                     .catch(err => console.error('Erro ao buscar dados admin:', err));
             } else {
@@ -395,23 +407,50 @@ function setupNavigation() {
     });
 
     // Sub-navegação Controle
-    btnSubChamada.addEventListener('click', () => {
-        showControlSection(controlChamada, btnSubChamada);
-        renderMassTabs();
-        updateAttendanceList();
-    });
+    if (btnSubQuemVai) {
+        btnSubQuemVai.addEventListener('click', () => {
+            showControlSection(controlQuemVai, btnSubQuemVai);
+            renderQuemVaiServir();
+        });
+    }
 
-    btnSubEspecial.addEventListener('click', () => {
-        showControlSection(controlEspecial, btnSubEspecial);
-        renderSpecialMassListAdmin();
-    });
+    if (btnSubChamada) {
+        btnSubChamada.addEventListener('click', () => {
+            showControlSection(controlChamada, btnSubChamada);
+            renderMassTabs();
+            updateAttendanceList();
+        });
+    }
 
-    btnSubRelatorio.addEventListener('click', () => {
-        showControlSection(controlRelatorio, btnSubRelatorio);
-        renderMassesReport();
-        updateChart();
-        updateGeneralList();
-    });
+    if (btnSubServidores) {
+        btnSubServidores.addEventListener('click', () => {
+            showControlSection(controlServidores, btnSubServidores);
+            renderServersAdminList();
+        });
+    }
+
+    if (btnSubEspecial) {
+        btnSubEspecial.addEventListener('click', () => {
+            showControlSection(controlEspecial, btnSubEspecial);
+            renderSpecialMassListAdmin();
+        });
+    }
+
+    if (btnSubRelatorio) {
+        btnSubRelatorio.addEventListener('click', () => {
+            showControlSection(controlRelatorio, btnSubRelatorio);
+            renderMassesReport();
+            updateChart();
+            updateGeneralList();
+        });
+    }
+
+    const btnConfirmAllMass = document.getElementById('btn-confirm-all-mass');
+    if (btnConfirmAllMass) {
+        btnConfirmAllMass.addEventListener('click', () => {
+            window.confirmAllCurrentMass();
+        });
+    }
 
     // Seleção de Nome -> Atualiza Ticks Imediatamente
     selectName.addEventListener('change', () => {
@@ -447,10 +486,14 @@ function showView(view) {
 }
 
 function showControlSection(section, btn) {
-    [controlChamada, controlEspecial, controlRelatorio].forEach(s => s.classList.add('hidden'));
-    [btnSubChamada, btnSubEspecial, btnSubRelatorio].forEach(b => b.classList.remove('active'));
-    section.classList.remove('hidden');
-    btn.classList.add('active');
+    [controlQuemVai, controlChamada, controlServidores, controlEspecial, controlRelatorio].forEach(s => {
+        if (s) s.classList.add('hidden');
+    });
+    [btnSubQuemVai, btnSubChamada, btnSubServidores, btnSubEspecial, btnSubRelatorio].forEach(b => {
+        if (b) b.classList.remove('active');
+    });
+    if (section) section.classList.remove('hidden');
+    if (btn) btn.classList.add('active');
 }
 
 function setupRoleFilter() {
@@ -906,179 +949,201 @@ function renderPublicMassSummary(massList) {
     });
 }
 
-// Renderização da Tabela Pública da Escala
+// Renderizacao da Tabela Publica da Escala
 function renderPublicScale() {
     if (!publicScaleList) return;
     publicScaleList.innerHTML = '';
-    
+
     const attendanceMap = {};
-    attendanceData.forEach(entry => {
+    attendanceData.forEach(function(entry) {
         if (!attendanceMap[entry.server_id]) attendanceMap[entry.server_id] = {};
         attendanceMap[entry.server_id][entry.mass_id] = entry.status;
     });
 
-    const sortedServers = [...servers].sort((a,b) => a.nome.localeCompare(b.nome));
+    var sortedServers = [...servers].sort(function(a,b){ return a.nome.localeCompare(b.nome); });
 
-    let massList = [];
+    var massList = [];
     if (currentMode === 'month' || currentMode === 'weekend') {
         renderScaleFilters();
         if (currentScaleFilter === 'all') {
             massList = massSchedules;
         } else {
-            massList = massSchedules.filter(m => m.weekendIndex == currentScaleFilter);
+            massList = massSchedules.filter(function(m){ return m.weekendIndex == currentScaleFilter; });
         }
     } else {
         if (scaleFilterContainer) scaleFilterContainer.innerHTML = '';
         if (!currentSpecialMassId) {
-            publicScaleList.innerHTML = '<p style="text-align:center; padding:20px; color:#7f8c8d;">Selecione uma missa especial para ver a agenda.</p>';
+            publicScaleList.innerHTML = '<p style="text-align:center;padding:20px;color:#7f8c8d;">Selecione uma missa especial para ver a agenda.</p>';
             return;
         }
-        const m = specialMasses.find(sm => sm.id == currentSpecialMassId);
-        if (m) {
-            const [y, mon, d] = m.mass_date.split('-');
+        var sm = specialMasses.find(function(x){ return x.id == currentSpecialMassId; });
+        if (sm) {
+            var parts = sm.mass_date.split('-');
             massList = [{
-                id: `special-${currentSpecialMassId}`,
-                dia: m.description,
-                data: `${d}/${mon}`,
-                hora: m.mass_time.substring(0,5)
+                id: 'special-' + currentSpecialMassId,
+                dia: sm.description,
+                data: parts[2] + '/' + parts[1],
+                hora: sm.mass_time.substring(0,5)
             }];
         }
     }
 
     if (massList.length === 0) {
-        publicScaleList.innerHTML = '<p style="text-align:center; padding:20px; color:#7f8c8d;">Nenhuma missa encontrada para este período.</p>';
+        publicScaleList.innerHTML = '<p style="text-align:center;padding:20px;color:#7f8c8d;">Nenhuma missa encontrada para este periodo.</p>';
         renderPublicMassSummary([]);
         return;
     }
 
-    // Atualiza o resumo de quantidade de acólitos/coroinhas por missa
     renderPublicMassSummary(massList);
 
-    const header = document.createElement('div');
-    const isMobile = window.innerWidth <= 768;
-    const nameColWidth = isMobile ? 150 : 190;
-    const colWidth = Math.max(isMobile ? 70 : 75, Math.floor(700 / massList.length));
-    header.style.gridTemplateColumns = `${nameColWidth}px repeat(${massList.length}, minmax(${colWidth}px, 1fr))`;
-    header.style.minWidth = `${nameColWidth + (massList.length * colWidth)}px`;
+    if (currentMode !== 'month' && currentMode !== 'weekend') {
+        renderWeekendSection(publicScaleList, massList, sortedServers, attendanceMap, null);
+        return;
+    }
 
-    const nameHeader = document.createElement('span');
-    nameHeader.innerHTML = '<strong>Servidor</strong>';
-    header.appendChild(nameHeader);
+    if (currentScaleFilter !== 'all') {
+        var group = weekendGroups.find(function(g){ return g.index == currentScaleFilter; });
+        renderWeekendSection(publicScaleList, massList, sortedServers, attendanceMap, group);
+    } else {
+        weekendGroups.forEach(function(group) {
+            var groupMasses = massList.filter(function(m){ return m.weekendIndex === group.index; });
+            if (groupMasses.length === 0) return;
+            renderWeekendSection(publicScaleList, groupMasses, sortedServers, attendanceMap, group);
+        });
+    }
+}
 
-    massList.forEach(m => {
-        const span = document.createElement('span');
-        span.innerHTML = `<strong>${m.dia.substring(0,3)} ${m.data}</strong><small style="display:block; font-size:0.68rem; opacity:0.85;">${m.hora}</small>`;
-        header.appendChild(span);
+function renderWeekendSection(container, masses, sortedServers, attendanceMap, group) {
+    var NAME_W = window.innerWidth <= 480 ? 120 : 150;
+    var MASS_W = window.innerWidth <= 480 ? 68  : 80;
+    var gridCols = NAME_W + 'px repeat(' + masses.length + ', minmax(' + MASS_W + 'px, 1fr))';
+
+    var section = document.createElement('div');
+    section.className = 'scale-v2-section';
+
+    if (group) {
+        var hdr = document.createElement('div');
+        hdr.className = 'scale-v2-section-header';
+        var lbl  = group.fullLabel || group.label;
+        var cnt  = masses.length + ' miss' + (masses.length === 1 ? 'a' : 'as');
+        hdr.innerHTML =
+            '<div class="scale-v2-section-label"><span>&#x26EA;</span><span>' + lbl + '</span></div>' +
+            '<span class="scale-v2-section-count">' + cnt + '</span>';
+        section.appendChild(hdr);
+    }
+
+    var tableWrap = document.createElement('div');
+    tableWrap.className = 'scale-v2-table';
+
+    /* ─── Column header row ─── */
+    var colHdrRow = document.createElement('div');
+    colHdrRow.className = 'scale-v2-row scale-v2-col-header-row';
+    colHdrRow.style.gridTemplateColumns = gridCols;
+
+    var srvHdr = document.createElement('div');
+    srvHdr.className = 'scale-v2-cell scale-v2-name-col scale-v2-hdr-cell';
+    srvHdr.innerHTML = '<span>Servidor</span>';
+    colHdrRow.appendChild(srvHdr);
+
+    masses.forEach(function(m) {
+        var cell = document.createElement('div');
+        cell.className = 'scale-v2-cell scale-v2-mass-col scale-v2-hdr-cell';
+        var isSat   = m.dayOfWeek === 6;
+        var dayAbbr = (m.dia || '').substring(0, 3);
+        cell.innerHTML =
+            '<div class="scale-v2-mass-pill ' + (isSat ? 'is-sat' : 'is-sun') + '">' +
+            '<span class="sv2-day">'  + dayAbbr + '</span>' +
+            '<span class="sv2-date">' + m.data  + '</span>' +
+            '<span class="sv2-time">' + m.hora  + '</span>' +
+            '</div>';
+        colHdrRow.appendChild(cell);
     });
-    publicScaleList.appendChild(header);
+    tableWrap.appendChild(colHdrRow);
 
-    // Linhas de resumo: quantos já clicaram em cada missa
-    const countsByMass = {};
-    massList.forEach(m => { countsByMass[m.id] = getMassCounts(m.id); });
-
-    const summaryRows = [
-        { cls: 'coroinhas-row', label: 'Coroinhas', value: c => c.coroinha },
-        { cls: 'acolitos-row', label: 'Acólitos', value: c => c.acolito },
-        { cls: 'total-row', label: 'Total que já clicaram', value: c => c.total }
+    /* ─── Summary rows ─── */
+    var summaryDefs = [
+        { cls: 'sv2-sum-coroinha', label: '&#x271D;&#xFE0F; Coroinhas', fn: function(c){ return c.coroinha; } },
+        { cls: 'sv2-sum-acolito',  label: '&#x26EA; Acolitos',          fn: function(c){ return c.acolito;  } },
+        { cls: 'sv2-sum-total',    label: '&#x1F465; Total',            fn: function(c){ return c.total;    } }
     ];
 
-    summaryRows.forEach(row => {
-        const div = document.createElement('div');
-        div.className = `scale-summary-row ${row.cls}`;
-        div.style.gridTemplateColumns = header.style.gridTemplateColumns;
-        div.style.minWidth = header.style.minWidth;
+    summaryDefs.forEach(function(def) {
+        var row = document.createElement('div');
+        row.className = 'scale-v2-row scale-v2-summary-row ' + def.cls;
+        row.style.gridTemplateColumns = gridCols;
 
-        const nameCol = document.createElement('div');
-        nameCol.className = 'scale-name';
-        nameCol.textContent = row.label;
-        div.appendChild(nameCol);
+        var lbl = document.createElement('div');
+        lbl.className = 'scale-v2-cell scale-v2-name-col scale-v2-sum-label';
+        lbl.innerHTML = def.label;
+        row.appendChild(lbl);
 
-        massList.forEach(m => {
-            const col = document.createElement('div');
-            col.className = 'scale-col';
-            col.textContent = row.value(countsByMass[m.id]);
-            div.appendChild(col);
+        masses.forEach(function(m) {
+            var counts = getMassCounts(m.id);
+            var val    = def.fn(counts);
+            var cell   = document.createElement('div');
+            cell.className = 'scale-v2-cell scale-v2-mass-col scale-v2-sum-val';
+            cell.innerHTML = '<span class="sv2-count ' + def.cls + '">' + val + '</span>';
+            row.appendChild(cell);
         });
-
-        publicScaleList.appendChild(div);
+        tableWrap.appendChild(row);
     });
 
-    const monthMassIds = massSchedules.map(m => m.id);
+    /* ─── Server rows ─── */
+    var monthMassIds = massSchedules.map(function(m){ return m.id; });
 
-    sortedServers.forEach(server => {
-        const div = document.createElement('div');
-        div.className = 'scale-row';
-        div.style.gridTemplateColumns = header.style.gridTemplateColumns;
-        div.style.minWidth = header.style.minWidth;
-        
-        const totalTicksMonth = attendanceData.filter(a => a.server_id === server.id && monthMassIds.includes(a.mass_id)).length;
-        
-        const nameCol = document.createElement('div');
-        nameCol.className = 'scale-name';
-        nameCol.title = `Clique para alterar ou desmarcar a escala de ${server.nome}`;
-        nameCol.onclick = () => editServerTicks(server.id);
-        
-        // Compute role‑specific tick counts
-        const roleCounts = (() => {
-            const entries = attendanceData.filter(a => a.server_id === server.id);
-            const acolyteCount = entries.filter(e => {
-                const srv = servers.find(s => s.id === e.server_id);
-                return srv && srv.cargo === 'Acólito';
-            }).length;
-            const coroinhaCount = entries.filter(e => {
-                const srv = servers.find(s => s.id === e.server_id);
-                return srv && srv.cargo === 'Coroinha';
-            }).length;
-            return { acolyteCount, coroinhaCount };
-        })();
-        
-        const roleShort = server.cargo === 'Acólito' ? 'Acólito' : 'Coroinha';
-        const roleClass = server.cargo === 'Acólito' ? 'role-acolito' : 'role-coroinha';
-        
-        nameCol.innerHTML = `
-            <div class="scale-name-text">
-                <div class="scale-server-title">${server.nome}</div>
-                <div class="scale-badges-wrap">
-                    <span class="badge ${roleClass}" style="font-size:0.6rem; padding:1px 5px;">${roleShort}</span>
-                    <span class="badge-total-ticks ${totalTicksMonth > 0 ? 'has-ticks' : ''}" style="font-size:0.6rem; padding:1px 5px;">${totalTicksMonth} missa${totalTicksMonth !== 1 ? 's' : ''}</span>
-                </div>
-            </div>
-            <div class="scale-name-actions">
-                <button type="button" class="btn-row-edit" title="Alterar ou desmarcar dias">✏️ Alterar</button>
-            </div>
-        `;
-        div.appendChild(nameCol);
-        
-        massList.forEach(m => {
-            const col = document.createElement('div');
-            col.className = 'scale-col';
-            
-            const status = attendanceMap[server.id] ? attendanceMap[server.id][m.id] : null;
-            let icon = '—';
-            let cls = 'status-none';
-            let title = 'Não inscrito';
-            
+    sortedServers.forEach(function(server, idx) {
+        var totalTicksMonth = attendanceData.filter(function(a){
+            return a.server_id === server.id && monthMassIds.includes(a.mass_id);
+        }).length;
+
+        var isAcolito = server.cargo === 'Ac\u00f3lito';
+        var roleClass = isAcolito ? 'role-acolito'  : 'role-coroinha';
+        var roleLabel = isAcolito ? 'Ac\u00f3lito'  : 'Coroinha';
+
+        var row = document.createElement('div');
+        row.className = 'scale-v2-row scale-v2-server-row ' + (idx % 2 === 0 ? 'sv2-even' : 'sv2-odd');
+        row.style.gridTemplateColumns = gridCols;
+
+        var nameCell = document.createElement('div');
+        nameCell.className = 'scale-v2-cell scale-v2-name-col scale-v2-server-name';
+        nameCell.title = 'Clique para alterar a escala de ' + server.nome;
+        nameCell.onclick = (function(id){ return function(){ editServerTicks(id); }; })(server.id);
+        var tcls = totalTicksMonth > 0 ? 'has-ticks' : '';
+        nameCell.innerHTML =
+            '<div class="sv2-server-info">' +
+              '<span class="sv2-server-title">' + server.nome + '</span>' +
+              '<div class="sv2-server-badges">' +
+                '<span class="badge ' + roleClass + '" style="font-size:0.6rem;padding:1px 5px;">' + roleLabel + '</span>' +
+                '<span class="badge-total-ticks ' + tcls + '" style="font-size:0.6rem;padding:1px 5px;">' + totalTicksMonth + 'ms</span>' +
+              '</div>' +
+            '</div>' +
+            '<button type="button" class="btn-row-edit sv2-edit-btn" title="Alterar">&#x270F;&#xFE0F;</button>';
+        row.appendChild(nameCell);
+
+        masses.forEach(function(m) {
+            var status = (attendanceMap[server.id] && attendanceMap[server.id][m.id])
+                         ? attendanceMap[server.id][m.id] : null;
+            var icon = '\u2014', cls = 'sv2-none', tip = 'N\u00e3o inscrito';
             if (status === 'present') {
-                icon = '✔';
-                cls = 'status-present';
-                title = 'Presença Confirmada';
+                icon = '\u2714'; cls = 'sv2-present'; tip = 'Presen\u00e7a confirmada';
             } else if (status === 'absent') {
-                icon = '✖';
-                cls = 'status-absent';
-                title = 'Falta Informada';
+                icon = '\u2716'; cls = 'sv2-absent';  tip = 'Falta informada';
             } else if (status === 'pending' || status === 'pretended') {
-                icon = '✔';
-                cls = 'status-pending';
-                title = 'Inscrito (Tick Marcado)';
+                icon = '\u2714'; cls = 'sv2-pending'; tip = 'Inscrito';
             }
-            
-            col.innerHTML = `<span class="status-icon ${cls}" title="${title}">${icon}</span>`;
-            div.appendChild(col);
+            var cell = document.createElement('div');
+            cell.className = 'scale-v2-cell scale-v2-mass-col scale-v2-tick-cell';
+            cell.innerHTML = '<span class="sv2-icon ' + cls + '" title="' + tip + '">' + icon + '</span>';
+            row.appendChild(cell);
         });
-        
-        publicScaleList.appendChild(div);
+
+        tableWrap.appendChild(row);
     });
+
+    section.appendChild(tableWrap);
+    container.appendChild(section);
 }
+
 
 // Atalho rápido: Carregar ticks de um servidor ao clicar na tabela
 window.editServerTicks = function(serverId) {
@@ -1111,6 +1176,613 @@ window.editServerTicks = function(serverId) {
 
 // --- ÁREA DO COORDENADOR ---
 
+// Estado e Filtros do Painel "Quem vai Servir"
+let qvWeekendFilter = 'all';
+let qvViewMode = 'mass'; // 'mass' ou 'server'
+let qvSearchTerm = '';
+let qvRoleFilter = 'all'; // 'all', 'Acólito', 'Coroinha'
+
+function setupQuemVaiServir() {
+    const btnQvPrevMonth = document.getElementById('btn-qv-prev-month');
+    const btnQvNextMonth = document.getElementById('btn-qv-next-month');
+    const btnModeByMass = document.getElementById('btn-mode-by-mass');
+    const btnModeByServer = document.getElementById('btn-mode-by-server');
+    const qvSearchInput = document.getElementById('qv-search-input');
+    const qvSearchClear = document.getElementById('qv-search-clear');
+    const rolePills = document.querySelectorAll('#qv-role-filters .role-pill');
+
+    if (btnQvPrevMonth) btnQvPrevMonth.addEventListener('click', () => changeMonth(-1));
+    if (btnQvNextMonth) btnQvNextMonth.addEventListener('click', () => changeMonth(1));
+
+    if (btnModeByMass && btnModeByServer) {
+        btnModeByMass.addEventListener('click', () => {
+            qvViewMode = 'mass';
+            btnModeByMass.classList.add('active');
+            btnModeByServer.classList.remove('active');
+            renderQuemVaiServir();
+        });
+        btnModeByServer.addEventListener('click', () => {
+            qvViewMode = 'server';
+            btnModeByServer.classList.add('active');
+            btnModeByMass.classList.remove('active');
+            renderQuemVaiServir();
+        });
+    }
+
+    if (qvSearchInput) {
+        qvSearchInput.addEventListener('input', (e) => {
+            qvSearchTerm = e.target.value.trim().toLowerCase();
+            if (qvSearchClear) {
+                if (qvSearchTerm) qvSearchClear.classList.remove('hidden');
+                else qvSearchClear.classList.add('hidden');
+            }
+            renderQuemVaiServir();
+        });
+    }
+
+    if (qvSearchClear && qvSearchInput) {
+        qvSearchClear.addEventListener('click', () => {
+            qvSearchInput.value = '';
+            qvSearchTerm = '';
+            qvSearchClear.classList.add('hidden');
+            renderQuemVaiServir();
+        });
+    }
+
+    rolePills.forEach(pill => {
+        pill.addEventListener('click', () => {
+            rolePills.forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+            qvRoleFilter = pill.getAttribute('data-role');
+            renderQuemVaiServir();
+        });
+    });
+}
+
+function renderQuemVaiServir() {
+    const monthDisplay = document.getElementById('qv-month-display');
+    const container = document.getElementById('qv-content-container');
+    const weekendFilterContainer = document.getElementById('qv-weekend-filters');
+
+    if (!container) return;
+
+    const monthText = `${MONTH_NAMES[selectedMonth]} de ${selectedYear}`;
+    if (monthDisplay) monthDisplay.textContent = `Mês: ${monthText}`;
+
+    const monthMassIds = massSchedules.map(m => m.id);
+    const monthAttendances = attendanceData.filter(a => monthMassIds.includes(a.mass_id));
+
+    // Cálculos de KPIs
+    const activeServerIds = new Set(monthAttendances.map(a => a.server_id));
+    const totalActive = activeServerIds.size;
+    const totalRegistered = servers.length;
+
+    const acolitoSlots = monthAttendances.filter(a => {
+        const s = servers.find(srv => srv.id === a.server_id);
+        return s && s.cargo === 'Acólito';
+    });
+    const activeAcolitosSet = new Set(acolitoSlots.map(a => a.server_id));
+    const totalAcolitosRegistered = servers.filter(s => s.cargo === 'Acólito').length;
+
+    const coroinhaSlots = monthAttendances.filter(a => {
+        const s = servers.find(srv => srv.id === a.server_id);
+        return s && s.cargo === 'Coroinha';
+    });
+    const activeCoroinhasSet = new Set(coroinhaSlots.map(a => a.server_id));
+    const totalCoroinhasRegistered = servers.filter(s => s.cargo === 'Coroinha').length;
+
+    let lowCoverageCount = 0;
+    massSchedules.forEach(m => {
+        const count = monthAttendances.filter(a => a.mass_id === m.id).length;
+        if (count < 2) lowCoverageCount++;
+    });
+
+    const kpiTotalActive = document.getElementById('kpi-qv-total-active');
+    const kpiTotalReg = document.getElementById('kpi-qv-total-registered');
+    const kpiAcolitos = document.getElementById('kpi-qv-acolitos');
+    const kpiAcolitosActive = document.getElementById('kpi-qv-acolitos-active');
+    const kpiCoroinhas = document.getElementById('kpi-qv-coroinhas');
+    const kpiCoroinhasActive = document.getElementById('kpi-qv-coroinhas-active');
+    const kpiMassesCount = document.getElementById('kpi-qv-masses-count');
+    const kpiNeedsAttention = document.getElementById('kpi-qv-needs-attention');
+
+    if (kpiTotalActive) kpiTotalActive.textContent = totalActive;
+    if (kpiTotalReg) kpiTotalReg.textContent = `de ${totalRegistered} cadastrados`;
+    if (kpiAcolitos) kpiAcolitos.textContent = acolitoSlots.length;
+    if (kpiAcolitosActive) kpiAcolitosActive.textContent = `${activeAcolitosSet.size} de ${totalAcolitosRegistered} ativos`;
+    if (kpiCoroinhas) kpiCoroinhas.textContent = coroinhaSlots.length;
+    if (kpiCoroinhasActive) kpiCoroinhasActive.textContent = `${activeCoroinhasSet.size} de ${totalCoroinhasRegistered} ativos`;
+    if (kpiMassesCount) kpiMassesCount.textContent = massSchedules.length;
+    if (kpiNeedsAttention) kpiNeedsAttention.textContent = `${lowCoverageCount} com poucos servidores`;
+
+    // Renderizar Filtros de Fim de Semana
+    if (weekendFilterContainer) {
+        weekendFilterContainer.innerHTML = '';
+        const btnAll = document.createElement('button');
+        btnAll.type = 'button';
+        btnAll.className = `btn-filter ${qvWeekendFilter === 'all' ? 'active' : ''}`;
+        btnAll.textContent = `Todas as Missas (${massSchedules.length})`;
+        btnAll.onclick = () => {
+            qvWeekendFilter = 'all';
+            renderQuemVaiServir();
+        };
+        weekendFilterContainer.appendChild(btnAll);
+
+        weekendGroups.forEach(g => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `btn-filter ${qvWeekendFilter == g.index ? 'active' : ''}`;
+            btn.textContent = g.label;
+            btn.onclick = () => {
+                qvWeekendFilter = g.index;
+                renderQuemVaiServir();
+            };
+            weekendFilterContainer.appendChild(btn);
+        });
+    }
+
+    container.innerHTML = '';
+
+    if (qvViewMode === 'mass') {
+        // --- VISÃO POR MISSA ---
+        let displayedMasses = massSchedules;
+        if (qvWeekendFilter !== 'all') {
+            displayedMasses = massSchedules.filter(m => m.weekendIndex == qvWeekendFilter);
+        }
+
+        if (displayedMasses.length === 0) {
+            container.innerHTML = '<p style="text-align:center; padding:30px; color:#7f8c8d;">Nenhuma missa encontrada para este filtro.</p>';
+            return;
+        }
+
+        const grid = document.createElement('div');
+        grid.className = 'coord-masses-grid';
+
+        let visibleCardsCount = 0;
+
+        displayedMasses.forEach(m => {
+            const massEntries = attendanceData.filter(a => a.mass_id === m.id);
+
+            let acolitos = massEntries
+                .map(a => ({ entry: a, server: servers.find(s => s.id === a.server_id) }))
+                .filter(item => item.server && item.server.cargo === 'Acólito')
+                .sort((a, b) => a.server.nome.localeCompare(b.server.nome));
+
+            let coroinhas = massEntries
+                .map(a => ({ entry: a, server: servers.find(s => s.id === a.server_id) }))
+                .filter(item => item.server && item.server.cargo === 'Coroinha')
+                .sort((a, b) => a.server.nome.localeCompare(b.server.nome));
+
+            // Filtro por Cargo
+            if (qvRoleFilter === 'Acólito') coroinhas = [];
+            if (qvRoleFilter === 'Coroinha') acolitos = [];
+
+            // Filtro de Busca
+            if (qvSearchTerm) {
+                const matchesAcolito = acolitos.some(i => i.server.nome.toLowerCase().includes(qvSearchTerm));
+                const matchesCoroinha = coroinhas.some(i => i.server.nome.toLowerCase().includes(qvSearchTerm));
+                if (!matchesAcolito && !matchesCoroinha) {
+                    return; // Pula este card
+                }
+            }
+
+            visibleCardsCount++;
+
+            const totalInMass = (qvRoleFilter === 'all') 
+                ? (acolitos.length + coroinhas.length)
+                : (qvRoleFilter === 'Acólito' ? acolitos.length : coroinhas.length);
+
+            let coverageClass = 'is-well-covered';
+            let badgeClass = 'good';
+            let badgeText = `✓ Coberta (${totalInMass})`;
+
+            if (totalInMass === 0) {
+                coverageClass = 'is-empty-mass';
+                badgeClass = 'danger';
+                badgeText = '🚨 Sem Servidores';
+            } else if (totalInMass < 2) {
+                coverageClass = 'is-low-coverage';
+                badgeClass = 'warning';
+                badgeText = `⚠️ Poucos Servidores (${totalInMass})`;
+            }
+
+            const card = document.createElement('div');
+            card.className = `coord-mass-card ${coverageClass}`;
+
+            // Renderizar chips de acólitos
+            let acolitosChipsHtml = '';
+            if (acolitos.length > 0) {
+                acolitosChipsHtml = acolitos.map(({ entry, server }) => {
+                    const initial = server.nome.trim().charAt(0).toUpperCase();
+                    let statusClass = 'pending';
+                    let statusLabel = 'Inscrito';
+                    if (entry.status === 'present') {
+                        statusClass = 'confirmed';
+                        statusLabel = 'Presente';
+                    } else if (entry.status === 'absent') {
+                        statusClass = 'absent';
+                        statusLabel = 'Ausente';
+                    }
+                    const isMatched = qvSearchTerm && server.nome.toLowerCase().includes(qvSearchTerm);
+                    return `
+                        <div class="server-chip acolito" style="${isMatched ? 'border-color: #d97706; box-shadow: 0 0 10px rgba(217,119,6,0.35);' : ''}">
+                            <div class="server-chip-avatar">${initial}</div>
+                            <span class="server-chip-name">${server.nome}</span>
+                            <span class="server-chip-status ${statusClass}">${statusLabel}</span>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                acolitosChipsHtml = '<div class="empty-role-hint"><span>⛪</span> Nenhum acólito escalado</div>';
+            }
+
+            // Renderizar chips de coroinhas
+            let coroinhasChipsHtml = '';
+            if (coroinhas.length > 0) {
+                coroinhasChipsHtml = coroinhas.map(({ entry, server }) => {
+                    const initial = server.nome.trim().charAt(0).toUpperCase();
+                    let statusClass = 'pending';
+                    let statusLabel = 'Inscrito';
+                    if (entry.status === 'present') {
+                        statusClass = 'confirmed';
+                        statusLabel = 'Presente';
+                    } else if (entry.status === 'absent') {
+                        statusClass = 'absent';
+                        statusLabel = 'Ausente';
+                    }
+                    const isMatched = qvSearchTerm && server.nome.toLowerCase().includes(qvSearchTerm);
+                    return `
+                        <div class="server-chip coroinha" style="${isMatched ? 'border-color: #0284c7; box-shadow: 0 0 10px rgba(2,132,199,0.35);' : ''}">
+                            <div class="server-chip-avatar">${initial}</div>
+                            <span class="server-chip-name">${server.nome}</span>
+                            <span class="server-chip-status ${statusClass}">${statusLabel}</span>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                coroinhasChipsHtml = '<div class="empty-role-hint"><span>✝️</span> Nenhum coroinha escalado</div>';
+            }
+
+            card.innerHTML = `
+                <div class="coord-mass-header">
+                    <div class="coord-mass-title-group">
+                        <span class="coord-mass-day-title">📅 ${m.dia} ${m.data}</span>
+                        <span class="coord-mass-time-badge">⏰ ${m.hora}</span>
+                    </div>
+                    <div class="coord-mass-header-badges">
+                        <span class="badge-coverage ${badgeClass}">${badgeText}</span>
+                        <div class="coord-mass-counts-row">
+                            <span class="count-pill total" title="Total na Missa">👥 ${acolitos.length + coroinhas.length}</span>
+                            ${qvRoleFilter !== 'Coroinha' ? `<span class="count-pill ac" title="Acólitos">⛪ ${acolitos.length}</span>` : ''}
+                            ${qvRoleFilter !== 'Acólito' ? `<span class="count-pill co" title="Coroinhas">✝️ ${coroinhas.length}</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+                <div class="coord-mass-body">
+                    ${qvRoleFilter !== 'Coroinha' ? `
+                    <div class="coord-role-section">
+                        <div class="coord-role-heading acolito">
+                            <span>⛪ Acólitos (${acolitos.length})</span>
+                        </div>
+                        <div class="coord-chips-list">
+                            ${acolitosChipsHtml}
+                        </div>
+                    </div>` : ''}
+
+                    ${qvRoleFilter !== 'Acólito' ? `
+                    <div class="coord-role-section">
+                        <div class="coord-role-heading coroinha">
+                            <span>✝️ Coroinhas (${coroinhas.length})</span>
+                        </div>
+                        <div class="coord-chips-list">
+                            ${coroinhasChipsHtml}
+                        </div>
+                    </div>` : ''}
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+
+        if (visibleCardsCount === 0) {
+            container.innerHTML = `<p style="text-align:center; padding:30px; color:#7f8c8d;">Nenhuma missa encontrada com o filtro de pesquisa "${qvSearchTerm}".</p>`;
+        } else {
+            container.appendChild(grid);
+        }
+
+    } else {
+        // --- VISÃO POR SERVIDOR ---
+        let filteredServers = [...servers];
+
+        if (qvRoleFilter !== 'all') {
+            filteredServers = filteredServers.filter(s => s.cargo === qvRoleFilter);
+        }
+
+        if (qvSearchTerm) {
+            filteredServers = filteredServers.filter(s => s.nome.toLowerCase().includes(qvSearchTerm));
+        }
+
+        filteredServers.sort((a, b) => a.nome.localeCompare(b.nome));
+
+        if (filteredServers.length === 0) {
+            container.innerHTML = '<p style="text-align:center; padding:30px; color:#7f8c8d;">Nenhum servidor encontrado com estes filtros.</p>';
+            return;
+        }
+
+        const grid = document.createElement('div');
+        grid.className = 'servers-breakdown-grid';
+
+        filteredServers.forEach(server => {
+            const serverEntries = attendanceData.filter(a => a.server_id === server.id && monthMassIds.includes(a.mass_id));
+            const hasMasses = serverEntries.length > 0;
+            const roleClass = server.cargo === 'Acólito' ? 'acolito' : 'coroinha';
+            const initial = server.nome.trim().charAt(0).toUpperCase();
+
+            const card = document.createElement('div');
+            card.className = `server-breakdown-card ${hasMasses ? '' : 'no-masses'}`;
+
+            let tagsHtml = '';
+            if (hasMasses) {
+                tagsHtml = serverEntries.map(e => {
+                    const m = massSchedules.find(ms => ms.id === e.mass_id);
+                    const label = m ? `${m.dia.substring(0,3)} ${m.data} às ${m.hora}` : e.mass_id;
+                    const isConfirmed = e.status === 'present';
+                    return `<span class="mass-tag-chip ${isConfirmed ? 'confirmed' : ''}" title="${isConfirmed ? 'Presença Confirmada' : 'Inscrito'}">${isConfirmed ? '✔' : '📅'} ${label}</span>`;
+                }).join('');
+            } else {
+                tagsHtml = '<div class="no-masses-alert"><span>⚠️</span> Não marcou nenhuma missa neste mês</div>';
+            }
+
+            card.innerHTML = `
+                <div class="server-breakdown-header">
+                    <div class="server-breakdown-identity">
+                        <div class="server-avatar-circle ${roleClass}">${initial}</div>
+                        <div>
+                            <div class="server-breakdown-name">${server.nome}</div>
+                            <span class="badge ${server.cargo === 'Acólito' ? 'role-acolito' : 'role-coroinha'}">${server.cargo}</span>
+                        </div>
+                    </div>
+                    <span class="server-breakdown-count-badge ${hasMasses ? 'has-count' : 'zero-count'}">
+                        ${serverEntries.length} missa${serverEntries.length !== 1 ? 's' : ''}
+                    </span>
+                </div>
+                <div class="server-masses-tags">
+                    ${tagsHtml}
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+
+        container.appendChild(grid);
+    }
+}
+
+// Estado e Gestão de Servidores (Cadastrar e Excluir)
+let serverFilterSearchTerm = '';
+let serverFilterRole = 'all';
+
+function setupServerManagement() {
+    const formAddServer = document.getElementById('form-add-server');
+    const filterInput = document.getElementById('filter-servers-list-input');
+    const filterRoleSelect = document.getElementById('filter-servers-role-select');
+
+    if (formAddServer) {
+        formAddServer.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nameInput = document.getElementById('new-server-name');
+            const roleRadio = document.querySelector('input[name="new-server-role"]:checked');
+            const submitBtn = document.getElementById('btn-submit-add-server');
+
+            if (!nameInput || !nameInput.value.trim()) {
+                showToast("Por favor, digite o nome do servidor!");
+                return;
+            }
+
+            const cleanName = nameInput.value.trim();
+            const cargo = roleRadio ? roleRadio.value : "Coroinha";
+
+            // Verifica duplicação
+            const alreadyExists = servers.some(s => 
+                s.nome.trim().toLowerCase() === cleanName.toLowerCase() && s.cargo === cargo
+            );
+            if (alreadyExists) {
+                showToast(`O servidor "${cleanName}" já está cadastrado como ${cargo}!`);
+                return;
+            }
+
+            const originalBtnHtml = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span>⏳ Salvando...</span>';
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('servers')
+                    .insert([{ nome: cleanName, cargo: cargo }])
+                    .select();
+
+                let newServerObj;
+                if (!error && data && data.length > 0) {
+                    newServerObj = data[0];
+                } else {
+                    if (error) console.warn("Aviso ao inserir no Supabase (usando fallback local):", error);
+                    const maxId = servers.reduce((max, s) => Math.max(max, s.id || 0), 0);
+                    newServerObj = { id: maxId + 1, nome: cleanName, cargo: cargo };
+                }
+
+                servers.push(newServerObj);
+                showToast(`${cargo} "${cleanName}" cadastrado com sucesso! 🎉`);
+                formAddServer.reset();
+
+                // Atualizar todas as telas
+                renderServerSelect();
+                renderServersAdminList();
+                renderQuemVaiServir();
+                renderPublicScale();
+                updateAttendanceList();
+                renderMassesReport();
+                updateGeneralList();
+                updateChart();
+            } catch (err) {
+                console.error("Erro ao adicionar servidor:", err);
+                showToast("Erro ao cadastrar servidor.");
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHtml;
+            }
+        });
+    }
+
+    if (filterInput) {
+        filterInput.addEventListener('input', (e) => {
+            serverFilterSearchTerm = e.target.value.trim().toLowerCase();
+            renderServersAdminList();
+        });
+    }
+
+    if (filterRoleSelect) {
+        filterRoleSelect.addEventListener('change', (e) => {
+            serverFilterRole = e.target.value;
+            renderServersAdminList();
+        });
+    }
+}
+
+function renderServersAdminList() {
+    const listContainer = document.getElementById('servers-admin-list');
+    const badgeTotal = document.getElementById('badge-total-servers');
+    const badgeAcolitos = document.getElementById('badge-acolitos-servers');
+    const badgeCoroinhas = document.getElementById('badge-coroinhas-servers');
+
+    if (!listContainer) return;
+
+    const totalAcolitos = servers.filter(s => s.cargo === 'Acólito').length;
+    const totalCoroinhas = servers.filter(s => s.cargo === 'Coroinha').length;
+
+    if (badgeTotal) badgeTotal.textContent = `Total: ${servers.length}`;
+    if (badgeAcolitos) badgeAcolitos.textContent = `⛪ Acólitos: ${totalAcolitos}`;
+    if (badgeCoroinhas) badgeCoroinhas.textContent = `✝️ Coroinhas: ${totalCoroinhas}`;
+
+    let filtered = [...servers];
+
+    if (serverFilterRole !== 'all') {
+        filtered = filtered.filter(s => s.cargo === serverFilterRole);
+    }
+
+    if (serverFilterSearchTerm) {
+        filtered = filtered.filter(s => s.nome.toLowerCase().includes(serverFilterSearchTerm));
+    }
+
+    filtered.sort((a, b) => a.nome.localeCompare(b.nome));
+
+    listContainer.innerHTML = '';
+
+    if (filtered.length === 0) {
+        listContainer.innerHTML = '<p style="text-align:center; padding:20px; color:#7f8c8d; grid-column: 1 / -1;">Nenhum servidor encontrado.</p>';
+        return;
+    }
+
+    const monthMassIds = massSchedules.map(m => m.id);
+
+    filtered.forEach(s => {
+        const initial = s.nome.trim().charAt(0).toUpperCase();
+        const roleClass = s.cargo === 'Acólito' ? 'acolito' : 'coroinha';
+        const ticksInMonth = attendanceData.filter(a => a.server_id === s.id && monthMassIds.includes(a.mass_id)).length;
+
+        const card = document.createElement('div');
+        card.className = 'server-admin-card';
+        card.innerHTML = `
+            <div class="server-admin-left">
+                <div class="server-avatar-circle ${roleClass}" style="width: 38px; height: 38px; font-size: 0.95rem;">${initial}</div>
+                <div class="server-admin-info">
+                    <span class="server-admin-name" title="${s.nome}">${s.nome}</span>
+                    <div class="server-admin-meta">
+                        <span class="badge ${s.cargo === 'Acólito' ? 'role-acolito' : 'role-coroinha'}">${s.cargo}</span>
+                        <span class="server-admin-ticks-count">📅 ${ticksInMonth} missa${ticksInMonth !== 1 ? 's' : ''} em ${MONTH_NAMES[selectedMonth].substring(0,3)}</span>
+                    </div>
+                </div>
+            </div>
+            <button type="button" class="btn-delete-server" onclick="deleteServer(${s.id})" title="Excluir ${s.nome}">
+                🗑️ Excluir
+            </button>
+        `;
+        listContainer.appendChild(card);
+    });
+}
+
+window.deleteServer = async function(serverId) {
+    const srv = servers.find(s => s.id === serverId);
+    if (!srv) return;
+
+    const confirmMsg = `Tem certeza que deseja excluir ${srv.cargo} "${srv.nome}"?\n\nTodas as marcações e presenças dele serão removidas da escala.`;
+    if (!confirm(confirmMsg)) return;
+
+    try {
+        // Remove marcações de presença primeiro
+        await supabaseClient.from('attendance').delete().eq('server_id', serverId);
+        attendanceData = attendanceData.filter(a => a.server_id !== serverId);
+
+        // Remove servidor
+        const { error } = await supabaseClient.from('servers').delete().eq('id', serverId);
+        if (error) {
+            console.warn("Aviso ao deletar servidor no Supabase:", error);
+        }
+
+        servers = servers.filter(s => s.id !== serverId);
+        showToast(`${srv.cargo} "${srv.nome}" excluído com sucesso!`);
+
+        renderServerSelect();
+        renderServersAdminList();
+        renderQuemVaiServir();
+        renderPublicScale();
+        updateAttendanceList();
+        renderMassesReport();
+        updateGeneralList();
+        updateChart();
+    } catch (err) {
+        console.error("Erro ao excluir servidor:", err);
+        showToast("Erro ao excluir servidor.");
+    }
+};
+
+window.confirmAllCurrentMass = async function() {
+    if (!selectedMassId) {
+        showToast("Selecione uma missa primeiro!");
+        return;
+    }
+
+    const massEntries = attendanceData.filter(a => a.mass_id === selectedMassId);
+    if (massEntries.length === 0) {
+        showToast("Ninguém inscrito nesta missa para confirmar.");
+        return;
+    }
+
+    const unconfirmed = massEntries.filter(a => a.status !== 'present');
+    if (unconfirmed.length === 0) {
+        showToast("Todos os servidores desta missa já estão confirmados!");
+        return;
+    }
+
+    try {
+        for (const entry of unconfirmed) {
+            await supabaseClient
+                .from('attendance')
+                .update({ status: 'present', confirmed: true })
+                .eq('id', entry.id);
+            entry.status = 'present';
+            entry.confirmed = true;
+        }
+
+        showToast(`Todos os ${unconfirmed.length} servidores desta missa foram confirmados! ✔`);
+        updateAttendanceList();
+        renderQuemVaiServir();
+        renderPublicScale();
+        updateGeneralList();
+        updateChart();
+    } catch (err) {
+        console.error("Erro ao confirmar todos:", err);
+        showToast("Erro ao confirmar presenças.");
+    }
+};
+
 // Conta quantos acólitos e coroinhas já marcaram (clicaram) em uma missa
 function getMassCounts(massId) {
     let acolitoCount = 0;
@@ -1130,6 +1802,28 @@ function countTag(cls, text) {
     return `<span class="count-tag ${cls}">${text}</span>`;
 }
 
+// Datas fixas do mês em que já há marcações (ticks)
+function getFixedDatesWithClicks(cargoFilter = null) {
+    const dates = [];
+
+    massSchedules.forEach(m => {
+        const hasClick = attendanceData.some(a => {
+            if (a.mass_id !== m.id) return false;
+            if (!cargoFilter) return true;
+            const server = servers.find(s => s.id === a.server_id);
+            return !!server && server.cargo === cargoFilter;
+        });
+
+        if (hasClick && !dates.includes(m.data)) dates.push(m.data);
+    });
+
+    return dates;
+}
+
+function formatFixedDates(dates) {
+    return dates.length > 0 ? dates.join(', ') : 'Nenhuma marcação';
+}
+
 // KPI de Quantidades da Missa Selecionada (Chamada)
 function renderAdminMassKpi() {
     const kpi = document.getElementById('admin-mass-kpi');
@@ -1141,18 +1835,25 @@ function renderAdminMassKpi() {
     }
 
     const counts = getMassCounts(selectedMassId);
+    const datasTotal = getFixedDatesWithClicks();
+    const datasAcolito = getFixedDatesWithClicks('Acólito');
+    const datasCoroinha = getFixedDatesWithClicks('Coroinha');
+
     kpi.innerHTML = `
         <div class="kpi-item total">
             <span class="kpi-value">${counts.total}</span>
             <span class="kpi-label">Total que já clicaram</span>
+            <span class="kpi-dates" title="Datas fixas do mês com marcações">Datas fixas no mês: ${formatFixedDates(datasTotal)}</span>
         </div>
         <div class="kpi-item acolito">
             <span class="kpi-value">${counts.acolito}</span>
             <span class="kpi-label">Acólitos</span>
+            <span class="kpi-dates" title="Datas fixas do mês com marcações de acólitos">Datas fixas no mês: ${formatFixedDates(datasAcolito)}</span>
         </div>
         <div class="kpi-item coroinha">
             <span class="kpi-value">${counts.coroinha}</span>
             <span class="kpi-label">Coroinhas</span>
+            <span class="kpi-dates" title="Datas fixas do mês com marcações de coroinhas">Datas fixas no mês: ${formatFixedDates(datasCoroinha)}</span>
         </div>
     `;
 }

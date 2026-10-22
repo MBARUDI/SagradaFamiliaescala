@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coordenação Sagrada Família</title>
-    <link rel="stylesheet" href="style.css?v=3.0">
+    <link rel="stylesheet" href="style.css?v=6.0">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -14,7 +14,6 @@
             <div class="banner-overlay"></div>
             <div class="logo-container">
                 <h1>Paróquia Sagrada Família</h1>
-                <p class="subtitle">Coordenação de Coroinhas e Acólitos</p>
             </div>
         </div>
         <nav id="main-nav">
@@ -63,7 +62,7 @@
             </div>
 
             <div class="card" id="card-escala">
-                <p class="subtitle" id="inscricao-subtitle">Selecione seu nome e marque os dias que você pode servir neste mês. Você pode alterar seus ticks ou desmarcar dias a qualquer momento.</p>
+                <p class="subtitle form-subtitle" id="inscricao-subtitle">Selecione seu nome e marque os dias que você pode servir neste mês. Você pode alterar seus ticks ou desmarcar dias a qualquer momento.</p>
                 
                 <form id="form-escala">
                     <div id="special-mass-picker-container" class="form-group hidden">
@@ -125,7 +124,16 @@
                         <h3 id="public-scale-title">Agenda Geral do Mês</h3>
                         <span id="public-scale-month-badge" class="badge-month"></span>
                     </div>
-                    <p class="public-scale-hint">💡 Toque no botão <b>Alterar</b> ou no seu nome para carregar seus ticks e ajustar sua escala.</p>
+
+                    <!-- Dropdown: cada acólito/coroinha escolhe seu nome para ver a própria escala -->
+                    <div class="scale-server-filter-row">
+                        <label for="scale-server-filter-select">👤 Ver escala de:</label>
+                        <select id="scale-server-filter-select">
+                            <option value="all">Todos os servidores</option>
+                        </select>
+                    </div>
+
+                    <p class="public-scale-hint">💡 Escolha um nome no menu acima para ver apenas as missas e horários daquela pessoa. No celular, a escala aparece em cartões fáceis de ler.</p>
                     <div id="scale-filter-container" class="scale-filter-container">
                         <!-- Botões de filtro por final de semana -->
                     </div>
@@ -134,8 +142,6 @@
                     <div id="public-mass-summary" class="public-mass-summary-container">
                         <!-- Carregado via JS -->
                     </div>
-
-                    <div class="mobile-scroll-indicator">👉 Deslize para a direita para ver todas as missas</div>
                 </div>
 
                 <div id="public-scale-list" class="scale-table">
@@ -266,6 +272,14 @@
 
                 <div id="admin-mass-filter" class="scale-filter-container" style="margin-bottom: 12px;">
                     <!-- Filtro de fins de semana na chamada -->
+                </div>
+
+                <!-- Seleção de missa por dropdown (mais prático no celular) -->
+                <div class="chamada-mass-select-row">
+                    <label for="chamada-mass-select">📅 Missa:</label>
+                    <select id="chamada-mass-select">
+                        <option value="" disabled selected>Escolha a missa...</option>
+                    </select>
                 </div>
 
                 <div id="mass-tabs" class="tabs">
@@ -443,6 +457,6 @@
     
     <!-- Cliente do Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="app.js?v=2.0"></script>
+    <script src="app.js?v=5.0"></script>
 </body>
 </html>

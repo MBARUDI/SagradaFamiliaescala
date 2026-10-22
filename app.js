@@ -18,6 +18,7 @@ let massSchedules = [];
 let weekendGroups = [];
 let selectedMassId = null;
 let currentScaleFilter = 'all'; // 'all' ou número do weekendIndex
+let scaleServerFilter = 'all'; // 'all' ou id do servidor (visão pessoal na Agenda Geral)
 let adminMassFilter = 'all';
 
 const MONTH_NAMES = [
@@ -150,6 +151,7 @@ const publicScaleTitle = document.getElementById('public-scale-title');
 const publicScaleMonthBadge = document.getElementById('public-scale-month-badge');
 const scaleFilterContainer = document.getElementById('scale-filter-container');
 const publicScaleList = document.getElementById('public-scale-list');
+const scaleServerFilterSelect = document.getElementById('scale-server-filter-select');
 const toast = document.getElementById('toast');
 
 // Sub-abas Controle
@@ -457,6 +459,14 @@ function setupNavigation() {
         updateTicksForSelectedServer();
     });
 
+    // Visualização pessoal na Agenda Geral (dropdown "Ver escala de:")
+    if (scaleServerFilterSelect) {
+        scaleServerFilterSelect.addEventListener('change', () => {
+            scaleServerFilter = scaleServerFilterSelect.value;
+            renderPublicScale();
+        });
+    }
+
     // Toggle de Tick ao clicar no Card ou Checkbox
     massOptions.addEventListener('change', (e) => {
         if (e.target.name === 'mass') {
@@ -467,6 +477,22 @@ function setupNavigation() {
             }
             updateSubmitButtonText();
         }
+    });
+
+    // Re-renderiza a agenda ao cruzar o limite mobile/desktop (giro do celular)
+    let lastIsMobile = window.innerWidth <= 768;
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            const nowIsMobile = window.innerWidth <= 768;
+            if (nowIsMobile !== lastIsMobile) {
+                lastIsMobile = nowIsMobile;
+                if (viewInscricao && !viewInscricao.classList.contains('hidden')) {
+                    renderPublicScale();
+                }
+            }
+        }, 200);
     });
 }
 
@@ -526,6 +552,35 @@ function renderServerSelect(filterRole = null) {
 
     if (previousSelected && Array.from(selectName.options).some(o => o.value == previousSelected)) {
         selectName.value = previousSelected;
+    }
+
+    // Mantém o dropdown de visualização pessoal (Agenda Geral) em sincronia
+    renderScaleServerFilterSelect();
+}
+
+// Dropdown "Ver escala de:" — cada acólito/coroinha escolhe seu nome na Agenda Geral
+function renderScaleServerFilterSelect() {
+    if (!scaleServerFilterSelect) return;
+    const previous = scaleServerFilter;
+
+    scaleServerFilterSelect.innerHTML = '<option value="all">Todos os servidores</option>';
+    [...servers]
+        .sort((a, b) => a.nome.localeCompare(b.nome))
+        .forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = `${s.cargo === 'Acólito' ? '⛪' : '✝️'} ${s.nome}`;
+            scaleServerFilterSelect.appendChild(opt);
+        });
+
+    const stillValid = previous !== 'all' &&
+        Array.from(scaleServerFilterSelect.options).some(o => o.value == previous);
+
+    if (stillValid) {
+        scaleServerFilterSelect.value = previous;
+    } else {
+        scaleServerFilter = 'all';
+        scaleServerFilterSelect.value = 'all';
     }
 }
 
@@ -625,40 +680,78 @@ function renderMassOptions() {
             return;
         }
 
+        const dropdown = document.createElement('div');
+        dropdown.className = 'mass-dropdown';
+        dropdown.id = 'mass-dropdown';
+        dropdown.innerHTML = `
+            <button type="button" class="mass-dropdown-toggle" id="mass-dropdown-toggle" aria-haspopup="listbox" aria-expanded="false">
+                <span class="mass-dropdown-icon">📅</span>
+                <span class="mass-dropdown-summary" id="mass-dropdown-summary">Selecione as missas, datas e horários que deseja servir...</span>
+                <span class="mass-dropdown-count hidden" id="mass-dropdown-count"></span>
+                <span class="mass-dropdown-chevron">▼</span>
+            </button>
+            <div class="mass-dropdown-panel hidden" id="mass-dropdown-panel">
+                <div class="mass-dropdown-options"></div>
+            </div>
+        `;
+        massOptions.appendChild(dropdown);
+
+        const optionsWrap = dropdown.querySelector('.mass-dropdown-options');
+
         weekendGroups.forEach(group => {
-            const block = document.createElement('div');
-            block.className = 'weekend-block';
-            
-            block.innerHTML = `
-                <div class="weekend-block-header">
-                    <span class="weekend-title">📅 ${group.fullLabel}</span>
-                    <span class="weekend-badge">${group.masses.length} missa${group.masses.length > 1 ? 's' : ''}</span>
-                </div>
-                <div class="weekend-grid"></div>
+            const g = document.createElement('div');
+            g.className = 'mass-dropdown-group';
+
+            const header = document.createElement('div');
+            header.className = 'mass-dropdown-group-header';
+            header.innerHTML = `
+                <span>📅 ${group.fullLabel}</span>
+                <span class="weekend-badge">${group.masses.length} missa${group.masses.length > 1 ? 's' : ''}</span>
             `;
-            
-            const grid = block.querySelector('.weekend-grid');
-            
+            g.appendChild(header);
+
             group.masses.forEach(m => {
                 const isTicked = serverMassIds.includes(m.id);
-                const item = document.createElement('div');
-                item.className = 'mass-item';
+                const item = document.createElement('label');
+                item.className = 'mass-dropdown-item';
+                item.setAttribute('for', `check-${m.id}`);
                 item.innerHTML = `
                     <input type="checkbox" id="check-${m.id}" name="mass" value="${m.id}" ${isTicked ? 'checked' : ''}>
-                    <label for="check-${m.id}" class="mass-label ${isTicked ? 'is-checked' : ''}">
-                        <div class="tick-indicator">✓</div>
-                        <div class="mass-info-wrap">
-                            <span class="mass-info-date">${m.dia} (${m.data})</span>
-                            <span class="mass-info-time">${m.hora}</span>
-                        </div>
-                    </label>
+                    <span class="tick-indicator">✓</span>
+                    <span class="mass-info-wrap">
+                        <span class="mass-info-date">${m.dia} (${m.data})</span>
+                        <span class="mass-info-time">${m.hora}</span>
+                    </span>
                 `;
-                grid.appendChild(item);
+                g.appendChild(item);
             });
-            
-            massOptions.appendChild(block);
+
+            optionsWrap.appendChild(g);
         });
-        
+
+        const toggleBtn = dropdown.querySelector('.mass-dropdown-toggle');
+        const panel = dropdown.querySelector('.mass-dropdown-panel');
+
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const willOpen = panel.classList.contains('hidden');
+            panel.classList.toggle('hidden', !willOpen);
+            toggleBtn.setAttribute('aria-expanded', String(willOpen));
+        });
+
+        const onDocClick = (e) => {
+            if (!document.contains(dropdown)) {
+                document.removeEventListener('click', onDocClick);
+                return;
+            }
+            if (!dropdown.contains(e.target)) {
+                panel.classList.add('hidden');
+                toggleBtn.setAttribute('aria-expanded', 'false');
+            }
+        };
+        document.addEventListener('click', onDocClick);
+
+        updateMassDropdownSummary();
         updateSubmitButtonText();
     } else if (currentMode === 'special' && currentSpecialMassId) {
         const div = document.createElement('div');
@@ -720,6 +813,7 @@ function updateTicksForSelectedServer() {
             if (label) label.classList.remove('is-checked');
         });
         updateSubmitButtonText();
+        syncPersonalViewToServer(null);
         return;
     }
     
@@ -751,7 +845,7 @@ function updateTicksForSelectedServer() {
                 <div class="tick-banner-icon">📋</div>
                 <div class="tick-banner-text">
                     <h4>Marcações de ${server.nome}</h4>
-                    <p>Você tem <strong>${serverRegistrations.length} missa(s) marcada(s)</strong> para ${monthText}. Altere as caixas (ticks) abaixo para <strong>mudar</strong> ou <strong>desmarcar</strong> qualquer dia, depois clique em Salvar.</p>
+                    <p>Você tem <strong>${serverRegistrations.length} missa(s) marcada(s)</strong> para ${monthText}. Use o menu dropdown abaixo para <strong>mudar</strong> ou <strong>desmarcar</strong> qualquer missa, depois clique em Salvar.</p>
                 </div>
             </div>
         `;
@@ -762,13 +856,50 @@ function updateTicksForSelectedServer() {
                 <div class="tick-banner-icon">💡</div>
                 <div class="tick-banner-text">
                     <h4>Olá, ${server.nome}!</h4>
-                    <p>Você ainda não marcou nenhuma missa para ${monthText}. Clique nos dias que você pode servir para marcar o tick (✓) e depois clique em Salvar.</p>
+                    <p>Você ainda não marcou nenhuma missa para ${monthText}. Abra o menu dropdown abaixo, marque os dias e horários que você pode servir e depois clique em Salvar.</p>
                 </div>
             </div>
         `;
     }
     
     updateSubmitButtonText();
+
+    // Ao escolher o nome no formulário, a Agenda Geral mostra só a escala dessa pessoa
+    syncPersonalViewToServer(serverId);
+}
+
+// Sincroniza o dropdown "Ver escala de:" com o nome escolhido no formulário
+function syncPersonalViewToServer(serverId) {
+    const newFilter = serverId ? String(serverId) : 'all';
+    if (String(scaleServerFilter) === newFilter) return;
+    scaleServerFilter = serverId ? serverId : 'all';
+    if (scaleServerFilterSelect) scaleServerFilterSelect.value = newFilter;
+    renderPublicScale();
+}
+
+// Atualiza o Resumo do Dropdown de Missas (mostra quantas e quais missas estão marcadas)
+function updateMassDropdownSummary() {
+    const summaryEl = document.getElementById('mass-dropdown-summary');
+    const countEl = document.getElementById('mass-dropdown-count');
+    if (!summaryEl || !countEl) return;
+
+    const checked = Array.from(document.querySelectorAll('input[name="mass"]:checked'));
+    if (checked.length === 0) {
+        summaryEl.textContent = 'Selecione as missas, datas e horários que deseja servir...';
+        countEl.classList.add('hidden');
+        return;
+    }
+
+    const labels = checked.map(cb => {
+        const item = cb.closest('.mass-dropdown-item');
+        const date = item?.querySelector('.mass-info-date')?.textContent || '';
+        const time = item?.querySelector('.mass-info-time')?.textContent || '';
+        return `${date} às ${time}`;
+    });
+
+    summaryEl.textContent = labels.slice(0, 2).join(' • ') + (labels.length > 2 ? ` +${labels.length - 2} outra(s)` : '');
+    countEl.textContent = checked.length;
+    countEl.classList.remove('hidden');
 }
 
 // Atualiza o Texto do Botão de Submit Dinamicamente
@@ -780,6 +911,8 @@ function updateSubmitButtonText() {
         btnSubmitEscala.className = "btn-primary";
         return;
     }
+    
+    updateMassDropdownSummary();
     
     const checkedCount = document.querySelectorAll('input[name="mass"]:checked').length;
     if (checkedCount > 0) {
@@ -913,12 +1046,43 @@ function renderScaleFilters() {
 }
 
 // Renderização do Resumo Público de Quantidade por Missa
-function renderPublicMassSummary(massList) {
+// Se personalServerId for informado, mostra apenas as missas daquele servidor com seu status
+function renderPublicMassSummary(massList, personalServerId) {
     const container = document.getElementById('public-mass-summary');
     if (!container) return;
     container.innerHTML = '';
 
     if (!massList || massList.length === 0) return;
+
+    if (personalServerId) {
+        const myEntries = attendanceData.filter(a => a.server_id == personalServerId);
+        const myMassIds = myEntries.map(a => a.mass_id);
+        const myMasses = massList.filter(m => myMassIds.includes(m.id));
+
+        if (myMasses.length === 0) {
+            container.innerHTML = '<p class="chip-empty">Você ainda não marcou nenhuma missa neste período.</p>';
+            return;
+        }
+
+        myMasses.forEach(mass => {
+            const entry = myEntries.find(a => a.mass_id === mass.id);
+            const st = entry ? entry.status : 'pretended';
+            let cls = 'st-in', txt = '✓ Inscrito';
+            if (st === 'present') { cls = 'st-present'; txt = '✓ Presente'; }
+            else if (st === 'absent') { cls = 'st-absent'; txt = '✗ Falta'; }
+
+            const chip = document.createElement('div');
+            chip.className = 'mass-summary-chip personal-chip';
+            chip.innerHTML = `
+                <span class="chip-title">${mass.dia.substring(0,3)} ${mass.data} – ${mass.hora}</span>
+                <div class="chip-counts">
+                    <span class="chip-status ${cls}">${txt}</span>
+                </div>
+            `;
+            container.appendChild(chip);
+        });
+        return;
+    }
 
     massList.forEach(mass => {
         const entriesForMass = attendanceData.filter(a => a.mass_id === mass.id);
@@ -953,6 +1117,7 @@ function renderPublicMassSummary(massList) {
 function renderPublicScale() {
     if (!publicScaleList) return;
     publicScaleList.innerHTML = '';
+    publicScaleList.classList.remove('cards-view');
 
     const attendanceMap = {};
     attendanceData.forEach(function(entry) {
@@ -961,6 +1126,13 @@ function renderPublicScale() {
     });
 
     var sortedServers = [...servers].sort(function(a,b){ return a.nome.localeCompare(b.nome); });
+
+    // Visualização pessoal: só o servidor escolhido no dropdown
+    var personalServerId = null;
+    if (scaleServerFilter && scaleServerFilter !== 'all') {
+        personalServerId = scaleServerFilter;
+        sortedServers = sortedServers.filter(s => s.id == scaleServerFilter);
+    }
 
     var massList = [];
     if (currentMode === 'month' || currentMode === 'weekend') {
@@ -990,30 +1162,173 @@ function renderPublicScale() {
 
     if (massList.length === 0) {
         publicScaleList.innerHTML = '<p style="text-align:center;padding:20px;color:#7f8c8d;">Nenhuma missa encontrada para este periodo.</p>';
-        renderPublicMassSummary([]);
+        renderPublicMassSummary([], personalServerId);
         return;
     }
 
-    renderPublicMassSummary(massList);
+    // Visão pessoal: lista limpa com as missas e horários da pessoa
+    if (personalServerId) {
+        const summaryEl = document.getElementById('public-mass-summary');
+        if (summaryEl) summaryEl.innerHTML = ''; // os cards já mostram o status
+        renderPersonalScaleCards(massList, personalServerId);
+        return;
+    }
+
+    renderPublicMassSummary(massList, null);
+
+    // Celular: cartões por missa (fáceis de ler, sem tabela estreita)
+    if (window.innerWidth <= 768) {
+        renderMobilePublicScaleCards(massList, attendanceMap);
+        return;
+    }
 
     if (currentMode !== 'month' && currentMode !== 'weekend') {
-        renderWeekendSection(publicScaleList, massList, sortedServers, attendanceMap, null);
+        renderWeekendSection(publicScaleList, massList, sortedServers, attendanceMap, null, personalServerId);
         return;
     }
 
     if (currentScaleFilter !== 'all') {
         var group = weekendGroups.find(function(g){ return g.index == currentScaleFilter; });
-        renderWeekendSection(publicScaleList, massList, sortedServers, attendanceMap, group);
+        renderWeekendSection(publicScaleList, massList, sortedServers, attendanceMap, group, personalServerId);
     } else {
         weekendGroups.forEach(function(group) {
             var groupMasses = massList.filter(function(m){ return m.weekendIndex === group.index; });
             if (groupMasses.length === 0) return;
-            renderWeekendSection(publicScaleList, groupMasses, sortedServers, attendanceMap, group);
+            renderWeekendSection(publicScaleList, groupMasses, sortedServers, attendanceMap, group, personalServerId);
         });
     }
 }
 
-function renderWeekendSection(container, masses, sortedServers, attendanceMap, group) {
+// Visão pessoal: cartões limpos com as missas marcadas pela pessoa
+function renderPersonalScaleCards(massList, personalServerId) {
+    const server = servers.find(s => s.id == personalServerId);
+    publicScaleList.classList.add('cards-view');
+    if (!server) return;
+
+    const roleClass = server.cargo === 'Ac\u00f3lito' ? 'acolito' : 'coroinha';
+    const roleIcon = server.cargo === 'Ac\u00f3lito' ? '\u26EA' : '\u271D\uFE0F';
+
+    const myEntries = attendanceData.filter(a => a.server_id == personalServerId);
+    const myMassIds = new Set(myEntries.map(a => a.mass_id));
+    const myMasses = massList.filter(m => myMassIds.has(m.id));
+
+    // Cabeçalho pessoal com botão de alterar
+    const head = document.createElement('div');
+    head.className = 'personal-scale-head';
+    head.innerHTML = `
+        <div class="psh-info">
+            <span class="psh-avatar ${roleClass}">${server.nome.trim().charAt(0).toUpperCase()}</span>
+            <div>
+                <h4>${server.nome}</h4>
+                <span class="badge ${roleClass}">${roleIcon} ${server.cargo}</span>
+            </div>
+        </div>
+        <button type="button" class="btn-quick" id="personal-edit-btn">✏️ Alterar escala</button>
+    `;
+    publicScaleList.appendChild(head);
+
+    const btnEdit = head.querySelector('#personal-edit-btn');
+    if (btnEdit) btnEdit.onclick = () => editServerTicks(personalServerId);
+
+    if (myMasses.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'personal-scale-empty';
+        empty.textContent = 'Nenhuma missa marcada neste período. Toque em "Alterar escala" para marcar seus dias.';
+        publicScaleList.appendChild(empty);
+        return;
+    }
+
+    myMasses.forEach(m => {
+        const entry = myEntries.find(a => a.mass_id === m.id);
+        const st = entry ? entry.status : 'pretended';
+        let cls = 'st-in', txt = '\u2713 Inscrito';
+        if (st === 'present') { cls = 'st-present'; txt = '\u2713 Presente'; }
+        else if (st === 'absent') { cls = 'st-absent'; txt = '\u2717 Falta'; }
+
+        const card = document.createElement('div');
+        card.className = 'personal-mass-card';
+        card.innerHTML = `
+            <div class="pmc-left">
+                <span class="pmc-day">${m.dia}</span>
+                <span class="pmc-date">${m.data}</span>
+            </div>
+            <span class="pmc-time">⏰ ${m.hora}</span>
+            <span class="chip-status ${cls}">${txt}</span>
+        `;
+        publicScaleList.appendChild(card);
+    });
+}
+
+// Celular: um cartão por missa, com os nomes de quem vai servir
+function renderMobilePublicScaleCards(massList, attendanceMap) {
+    publicScaleList.classList.add('cards-view');
+
+    massList.forEach(m => {
+        const registered = servers
+            .map(s => ({ s, status: attendanceMap[s.id] && attendanceMap[s.id][m.id] }))
+            .filter(x => x.status);
+
+        const acolitos = registered.filter(x => x.s.cargo === 'Ac\u00f3lito')
+            .sort((a, b) => a.s.nome.localeCompare(b.s.nome));
+        const coroinhas = registered.filter(x => x.s.cargo === 'Coroinha')
+            .sort((a, b) => a.s.nome.localeCompare(b.s.nome));
+        const total = registered.length;
+
+        const card = document.createElement('div');
+        card.className = 'pub-mass-card';
+
+        const chipHtml = (items, kind) => {
+            if (items.length === 0) return '';
+            return `
+                <div class="coord-role-section">
+                    <div class="coord-role-heading ${kind}"><span>${kind === 'acolito' ? '\u26EA Ac\u00f3litos' : '\u271D\uFE0F Coroinhas'}</span><span>${items.length}</span></div>
+                    <div class="coord-chips-list">
+                        ${items.map(({ s, status }) => {
+                            let stCls = 'pending', stTxt = 'Inscrito';
+                            if (status === 'present') { stCls = 'confirmed'; stTxt = 'Presente'; }
+                            else if (status === 'absent') { stCls = 'absent'; stTxt = 'Falta'; }
+                            return `
+                                <div class="server-chip ${kind}" data-server-id="${s.id}" title="Toque para carregar a escala de ${s.nome}">
+                                    <div class="server-chip-avatar">${s.nome.trim().charAt(0).toUpperCase()}</div>
+                                    <span class="server-chip-name">${s.nome}</span>
+                                    <span class="server-chip-status ${stCls}">${stTxt}</span>
+                                </div>`;
+                        }).join('')}
+                    </div>
+                </div>`;
+        };
+
+        let bodyHtml = '';
+        if (total === 0) {
+            bodyHtml = '<div class="empty-role-hint"><span>🕊️</span> Ninguém escalado ainda</div>';
+        } else {
+            bodyHtml = chipHtml(acolitos, 'acolito') + chipHtml(coroinhas, 'coroinha');
+        }
+
+        card.innerHTML = `
+            <div class="coord-mass-header">
+                <div class="coord-mass-title-group">
+                    <span class="coord-mass-day-title">📅 ${m.dia} ${m.data}</span>
+                    <span class="coord-mass-time-badge">⏰ ${m.hora}</span>
+                </div>
+                <div class="coord-mass-counts-row">
+                    <span class="count-pill total">👥 ${total}</span>
+                    <span class="count-pill ac">⛪ ${acolitos.length}</span>
+                    <span class="count-pill co">✝️ ${coroinhas.length}</span>
+                </div>
+            </div>
+            <div class="coord-mass-body">${bodyHtml}</div>
+        `;
+
+        card.querySelectorAll('.server-chip[data-server-id]').forEach(chip => {
+            chip.onclick = () => editServerTicks(chip.getAttribute('data-server-id'));
+        });
+
+        publicScaleList.appendChild(card);
+    });
+}
+
+function renderWeekendSection(container, masses, sortedServers, attendanceMap, group, personalServerId) {
     var NAME_W = window.innerWidth <= 480 ? 120 : 150;
     var MASS_W = window.innerWidth <= 480 ? 68  : 80;
     var gridCols = NAME_W + 'px repeat(' + masses.length + ', minmax(' + MASS_W + 'px, 1fr))';
@@ -1060,8 +1375,9 @@ function renderWeekendSection(container, masses, sortedServers, attendanceMap, g
     });
     tableWrap.appendChild(colHdrRow);
 
-    /* ─── Summary rows ─── */
-    var summaryDefs = [
+    /* ─── Summary rows (ocultas na visão pessoal de um servidor) ─── */
+    if (!personalServerId) {
+        var summaryDefs = [
         { cls: 'sv2-sum-coroinha', label: '&#x271D;&#xFE0F; Coroinhas', fn: function(c){ return c.coroinha; } },
         { cls: 'sv2-sum-acolito',  label: '&#x26EA; Acolitos',          fn: function(c){ return c.acolito;  } },
         { cls: 'sv2-sum-total',    label: '&#x1F465; Total',            fn: function(c){ return c.total;    } }
@@ -1085,8 +1401,9 @@ function renderWeekendSection(container, masses, sortedServers, attendanceMap, g
             cell.innerHTML = '<span class="sv2-count ' + def.cls + '">' + val + '</span>';
             row.appendChild(cell);
         });
-        tableWrap.appendChild(row);
-    });
+            tableWrap.appendChild(row);
+        });
+    }
 
     /* ─── Server rows ─── */
     var monthMassIds = massSchedules.map(function(m){ return m.id; });
@@ -1926,6 +2243,7 @@ function renderMassTabs() {
             updateTabStates();
             updateAttendanceList();
             updateChart();
+            syncChamadaMassSelect();
         };
         massTabs.appendChild(tab);
     });
@@ -1947,9 +2265,78 @@ function renderMassTabs() {
             updateTabStates();
             updateAttendanceList();
             updateChart();
+            syncChamadaMassSelect();
         };
         massTabs.appendChild(tab);
     });
+
+    renderChamadaMassSelect();
+}
+
+// Dropdown de seleção de missa na aba Chamada (mais prático no celular)
+function renderChamadaMassSelect() {
+    const sel = document.getElementById('chamada-mass-select');
+    if (!sel) return;
+
+    const prev = selectedMassId;
+    sel.innerHTML = '';
+
+    let displayedMasses = massSchedules;
+    if (adminMassFilter !== 'all') {
+        displayedMasses = massSchedules.filter(m => m.weekendIndex == adminMassFilter);
+    }
+
+    const optGroup = (label) => {
+        const og = document.createElement('optgroup');
+        og.label = label;
+        return og;
+    };
+
+    if (displayedMasses.length > 0) {
+        const og = optGroup('Missas do mês');
+        displayedMasses.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.id;
+            opt.textContent = `${m.dia} (${m.data}) às ${m.hora}`;
+            og.appendChild(opt);
+        });
+        sel.appendChild(og);
+    }
+
+    if (specialMasses.length > 0) {
+        const og = optGroup('Missas especiais');
+        specialMasses.forEach(m => {
+            const opt = document.createElement('option');
+            const mId = `special-${m.id}`;
+            opt.value = mId;
+            const [y, mon, d] = m.mass_date.split('-');
+            opt.textContent = `🌟 ${m.description} (${d}/${mon}) às ${m.mass_time.substring(0,5)}`;
+            og.appendChild(opt);
+        });
+        sel.appendChild(og);
+    }
+
+    if (Array.from(sel.options).some(o => o.value === prev)) {
+        sel.value = prev;
+    } else if (sel.options.length > 0) {
+        sel.value = sel.options[0].value;
+        selectedMassId = sel.value;
+    }
+
+    sel.onchange = () => {
+        selectedMassId = sel.value;
+        updateTabStates();
+        updateAttendanceList();
+        updateChart();
+    };
+}
+
+function syncChamadaMassSelect() {
+    const sel = document.getElementById('chamada-mass-select');
+    if (!sel) return;
+    if (Array.from(sel.options).some(o => o.value === selectedMassId)) {
+        sel.value = selectedMassId;
+    }
 }
 
 function renderAdminMassFilter() {
